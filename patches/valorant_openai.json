@@ -1,0 +1,23 @@
+{
+  "game": "Valorant",
+  "patch_version": "unknown",
+  "date": "unknown",
+  "changes": [
+    {
+      "type": "nerf",
+      "target": "Jett",
+      "ability": "Updraft",
+      "details": "Cooldown increased from 12s to 16s."
+    },
+    {
+      "type": "buff",
+      "target": "Operator",
+      "details": "Damage falloff reduced by 15%."
+    },
+    {
+      "type": "new",
+      "target": "map",
+      "details": "New map 'Sunset' added to competitive rotation."
+    }
+  ]
+}

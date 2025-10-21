@@ -1,0 +1,13 @@
+{
+  "game": "Valorant",
+  "patch_version": "8.04",
+  "date": "2025-10-15",
+  "changes": [
+    {
+      "type": "nerf",
+      "target": "Jett",
+      "ability": "Updraft",
+      "details": "Cooldown increased from 12s to 16s"
+    }
+  ]
+}
