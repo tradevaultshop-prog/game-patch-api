@@ -1,0 +1,24 @@
+{
+  "game": "Valorant",
+  "patch_version": "unknown",
+  "date": "unknown",
+  "changes": [
+    {
+      "type": "nerf",
+      "target": "karakter",
+      "ability": "Updraft",
+      "details": "Jett's Updraft cooldown increased from 12s to 16s."
+    },
+    {
+      "type": "buff",
+      "target": "silah",
+      "ability": "damage falloff",
+      "details": "Operator damage falloff reduced by 15%."
+    },
+    {
+      "type": "new",
+      "target": "harita",
+      "details": "New map 'Sunset' added."
+    }
+  ]
+}

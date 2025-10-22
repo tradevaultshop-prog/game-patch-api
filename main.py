@@ -18,5 +18,5 @@ def get_patches(game: str = None):
                     if game is None or data.get("game", "").lower() == game.lower():
                         patches.append(data)
             except Exception as e:
-                continue  # Bozuk dosyaları atla
+                continue
     return patches
