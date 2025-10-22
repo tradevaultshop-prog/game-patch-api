@@ -9,32 +9,19 @@ app = FastAPI()
 def root():
     return {"message": "Game Patch Notes Intelligence API", "docs": "/docs"}
 
-@app.get("/patches/latest")
-def get_latest_patch(game: str = "Valorant"):
-    filename = f"{game.lower()}_latest.json"
-    filepath = os.path.join("patches", filename)
-    if os.path.exists(filepath):
-        try:
-            with open(filepath, encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            return {"error": "JSON okunamadı", "details": str(e)}
-    else:
-        return {"error": "En son yama verisi bulunamadı", "expected_file": filepath}
-
-@app.get("/scrape")
-def trigger_scrape():
-    import subprocess
-    try:
-        result = subprocess.run(
-            ["python", "scrape.py"],
-            capture_output=True,
-            text=True,
-            cwd="."
-        )
-        if result.returncode == 0:
-            return {"status": "success", "output": result.stdout[-500:]}  # Son 500 karakter
-        else:
-            return {"status": "error", "output": result.stderr[-500:]}
-    except Exception as e:
-        return {"status": "exception", "error": str(e)}
+@app.get("/patches")
+def get_patches(game: str = None):
+    patches = []
+    patches_dir = "patches"
+    if not os.path.exists(patches_dir):
+        return {"error": "patches klasörü bulunamadı!"}
+    for file in os.listdir(patches_dir):
+        if file.endswith(".json"):
+            try:
+                with open(os.path.join(patches_dir, file), encoding='utf-8') as f:
+                    data = json.load(f)
+                    if game is None or data.get("game", "").lower() == game.lower():
+                        patches.append(data)
+            except Exception as e:
+                continue
+    return patches
