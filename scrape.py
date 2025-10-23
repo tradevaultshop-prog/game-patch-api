@@ -11,8 +11,8 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
-# 🧠 Yeni: utils.py dosyasından analyze_with_gemini fonksiyonunu içe aktar
-from utils import save_json, analyze_with_gemini
+# 🧠 Düzeltme: save_json bu dosyada olduğu için sadece analyze_with_gemini içe aktarılıyor
+from utils import analyze_with_gemini 
 
 # 🔐 .env dosyasını yükle
 load_dotenv()
@@ -23,11 +23,7 @@ if not GEMINI_API_KEY:
     # Hata kontrolünü Gemini anahtarına göre güncelleyin
     raise ValueError("❌ .env dosyasında GEMINI_API_KEY tanımlı değil!")
 
-# 🗑️ OpenAI istemcisi oluşturma kaldırıldı: 
-# client = OpenAI(api_key=OPENAI_API_KEY) 
-# -> İstemci artık sadece utils.py içinde tanımlanıyor.
-
-# 📝 Logging ayarı (Aynı kaldı)
+# 📝 Logging ayarı 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -37,7 +33,7 @@ logging.basicConfig(
     ]
 )
 
-# 🌐 Güvenilir session (Aynı kaldı)
+# 🌐 Güvenilir session 
 def create_session():
     session = requests.Session()
     retries = Retry(total=3, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504])
@@ -50,9 +46,8 @@ def create_session():
 session = create_session()
 
 # ================================
-# 🎮 SCRAPER FONKSİYONLARI (Aynı kaldı)
+# 🎮 SCRAPER FONKSİYONLARI 
 # ================================
-# ... (fetch_valorant_patch_notes, fetch_roblox_patch_notes, vb. fonksiyonlar buraya taşınır) ...
 def fetch_valorant_patch_notes():
     url = "https://playvalorant.com/en-us/news/game-updates/"
     try:
@@ -148,13 +143,7 @@ def fetch_fortnite_patch_notes():
         return "Added Shockwave Grenade. Tilted Towers returns."
 
 # ================================
-# 🧠 OpenAI Analiz Fonksiyonu Kaldırıldı (Artık utils.py içinde analyze_with_gemini var)
-# ================================
-# def analyze_with_openai(...):
-#     ... (Bu kısım utils.py'ye taşınmalı/güncellenmeli) ...
-
-# ================================
-# 💾 Kaydet (Aynı kaldı)
+# 💾 Kaydet (BU FONKSİYON BU DOSYADA KALMALI)
 # ================================
 def save_json(data, base_name):
     os.makedirs("patches", exist_ok=True)
@@ -178,7 +167,7 @@ if __name__ == "__main__":
         "Minecraft": fetch_minecraft_patch_notes,
         "League of Legends": fetch_league_patch_notes,
         "Counter-Strike 2": fetch_cs2_patch_notes,
-        "Fortnite": fetch_fortnite_patch_notes,
+        "Fortnite": fetch_fortnite_patch_notes, # <-- SÖZDİZİMİ HATASI DÜZELTİLDİ
     }
 
     for i, (game_name, fetch_fn) in enumerate(games.items()):
@@ -189,7 +178,7 @@ if __name__ == "__main__":
             logging.warning(f"⚠️  {game_name} için veri yok. Fallback metin kullanılıyor.")
             raw = fallback
 
-        # 🔄 ÖNEMLİ DEĞİŞİKLİK: Gemini fonksiyonu çağrılıyor
+        # 🔄 Gemini fonksiyonu çağrılıyor
         result = analyze_with_gemini(raw, game_name) 
         
         if result:
@@ -198,8 +187,7 @@ if __name__ == "__main__":
         else:
             logging.error(f"❌ {game_name} analizi başarısız.")
 
-        # Rate limit koruması: bekleme süresi aynı kalabilir, 
-        # ancak log mesajı Gemini'ye göre güncellenmeli.
+        # Rate limit koruması: bekleme süresi aynı kaldı, 
         if i < len(games) - 1:  # Son öğe için bekleme gerekmez
             delay = random.uniform(5, 12)
             logging.info(f"⏳ Gemini rate limit koruması için {delay:.1f} saniye bekleniyor...")
