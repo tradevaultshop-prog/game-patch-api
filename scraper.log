@@ -1,0 +1,205 @@
+2025-10-23 07:24:10,784 - INFO - 🚀 Tüm oyunların yama analizi başlatılıyor...
+2025-10-23 07:24:10,786 - INFO - 🔍 Valorant için veri çekiliyor...
+2025-10-23 07:24:12,919 - WARNING - ⚠️  Valorant için veri yok. Fallback metin kullanılıyor.
+2025-10-23 07:24:15,735 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-23 07:24:15,776 - INFO - ✅ JSON kaydedildi: patches\valorant_latest.json
+2025-10-23 07:24:15,777 - INFO - 🔍 Roblox için veri çekiliyor...
+2025-10-23 07:24:17,279 - WARNING - Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self-signed certificate (_ssl.c:1028)'))': /c/announcements/updates/55
+2025-10-23 07:24:34,289 - WARNING - Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001DEBE013D90>, 'Connection to devforum.roblox.com timed out. (connect timeout=15)')': /c/announcements/updates/55
+2025-10-23 07:24:46,867 - WARNING - Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self-signed certificate (_ssl.c:1028)'))': /c/announcements/updates/55
+2025-10-23 07:25:03,139 - WARNING - Roblox scraping hatası: HTTPSConnectionPool(host='devforum.roblox.com', port=443): Max retries exceeded with url: /c/announcements/updates/55 (Caused by ReadTimeoutError("HTTPSConnectionPool(host='devforum.roblox.com', port=443): Read timed out. (read timeout=15)"))
+2025-10-23 07:25:04,984 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-23 07:25:04,992 - INFO - ✅ JSON kaydedildi: patches\roblox_latest.json
+2025-10-23 07:25:04,993 - INFO - 🔍 Minecraft için veri çekiliyor...
+2025-10-23 07:25:07,874 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-23 07:25:07,879 - INFO - ✅ JSON kaydedildi: patches\minecraft_latest.json
+2025-10-23 07:25:07,880 - INFO - 🔍 League of Legends için veri çekiliyor...
+2025-10-23 07:25:16,226 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-23 07:25:16,302 - INFO - ✅ JSON kaydedildi: patches\league_of_legends_latest.json
+2025-10-23 07:25:16,304 - INFO - 🔍 Counter-Strike 2 için veri çekiliyor...
+2025-10-23 07:25:18,863 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:25:18,865 - INFO - Retrying request to /chat/completions in 20.000000 seconds
+2025-10-23 07:25:40,241 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-23 07:25:40,249 - INFO - ✅ JSON kaydedildi: patches\counter_strike_2_latest.json
+2025-10-23 07:25:40,250 - INFO - 🔍 Fortnite için veri çekiliyor...
+2025-10-23 07:25:42,556 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:25:42,558 - INFO - Retrying request to /chat/completions in 20.000000 seconds
+2025-10-23 07:26:05,058 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-23 07:26:05,065 - INFO - ✅ JSON kaydedildi: patches\fortnite_latest.json
+2025-10-23 07:32:55,710 - INFO - 🚀 Tüm oyunların yama analizi başlatılıyor...
+2025-10-23 07:32:55,711 - INFO - 🔍 Valorant için veri çekiliyor...
+2025-10-23 07:33:00,784 - WARNING - ⚠️  Valorant için veri yok. Fallback metin kullanılıyor.
+2025-10-23 07:33:02,530 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:33:02,532 - INFO - Retrying request to /chat/completions in 0.420536 seconds
+2025-10-23 07:33:03,191 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:33:03,193 - INFO - Retrying request to /chat/completions in 0.765333 seconds
+2025-10-23 07:33:04,153 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:33:04,159 - ERROR - OpenAI JSON hatası (Valorant): Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2025-10-23 07:33:04,159 - ERROR - ❌ Valorant analizi başarısız.
+2025-10-23 07:33:04,160 - INFO - ⏳ OpenAI rate limit koruması için 9.6 saniye bekleniyor...
+2025-10-23 07:33:13,741 - INFO - 🔍 Roblox için veri çekiliyor...
+2025-10-23 07:33:31,379 - WARNING - Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ReadTimeoutError("HTTPSConnectionPool(host='create.roblox.com', port=443): Read timed out. (read timeout=15)")': /docs/reference/updates.rss
+2025-10-23 07:33:52,702 - WARNING - Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ReadTimeoutError("HTTPSConnectionPool(host='create.roblox.com', port=443): Read timed out. (read timeout=15)")': /docs/reference/updates.rss
+2025-10-23 07:34:11,714 - WARNING - Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001512D19D590>, 'Connection to create.roblox.com timed out. (connect timeout=15)')': /docs/reference/updates.rss
+2025-10-23 07:34:32,297 - WARNING - Roblox RSS hatası: HTTPSConnectionPool(host='create.roblox.com', port=443): Max retries exceeded with url: /docs/reference/updates.rss (Caused by ReadTimeoutError("HTTPSConnectionPool(host='create.roblox.com', port=443): Read timed out. (read timeout=15)"))
+2025-10-23 07:34:32,703 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:34:32,705 - INFO - Retrying request to /chat/completions in 0.436598 seconds
+2025-10-23 07:34:33,370 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:34:33,372 - INFO - Retrying request to /chat/completions in 0.905844 seconds
+2025-10-23 07:34:34,555 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:34:34,559 - ERROR - OpenAI JSON hatası (Roblox): Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2025-10-23 07:34:34,560 - ERROR - ❌ Roblox analizi başarısız.
+2025-10-23 07:34:34,561 - INFO - ⏳ OpenAI rate limit koruması için 9.4 saniye bekleniyor...
+2025-10-23 07:34:43,940 - INFO - 🔍 Minecraft için veri çekiliyor...
+2025-10-23 07:34:47,424 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:34:47,427 - INFO - Retrying request to /chat/completions in 0.498703 seconds
+2025-10-23 07:34:48,175 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:34:48,177 - INFO - Retrying request to /chat/completions in 0.891217 seconds
+2025-10-23 07:34:49,309 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:34:49,312 - ERROR - OpenAI JSON hatası (Minecraft): Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2025-10-23 07:34:49,317 - ERROR - ❌ Minecraft analizi başarısız.
+2025-10-23 07:34:49,321 - INFO - ⏳ OpenAI rate limit koruması için 9.0 saniye bekleniyor...
+2025-10-23 07:34:58,368 - INFO - 🔍 League of Legends için veri çekiliyor...
+2025-10-23 07:35:01,319 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:35:01,321 - INFO - Retrying request to /chat/completions in 0.420136 seconds
+2025-10-23 07:35:02,032 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:35:02,035 - INFO - Retrying request to /chat/completions in 0.976501 seconds
+2025-10-23 07:35:03,266 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:35:03,268 - ERROR - OpenAI JSON hatası (League of Legends): Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2025-10-23 07:35:03,275 - ERROR - ❌ League of Legends analizi başarısız.
+2025-10-23 07:35:03,278 - INFO - ⏳ OpenAI rate limit koruması için 5.6 saniye bekleniyor...
+2025-10-23 07:35:08,844 - INFO - 🔍 Counter-Strike 2 için veri çekiliyor...
+2025-10-23 07:35:20,705 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:35:20,721 - INFO - Retrying request to /chat/completions in 0.462915 seconds
+2025-10-23 07:35:21,397 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:35:21,399 - INFO - Retrying request to /chat/completions in 0.995982 seconds
+2025-10-23 07:35:22,632 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:35:22,634 - ERROR - OpenAI JSON hatası (Counter-Strike 2): Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2025-10-23 07:35:22,639 - ERROR - ❌ Counter-Strike 2 analizi başarısız.
+2025-10-23 07:35:22,641 - INFO - ⏳ OpenAI rate limit koruması için 5.1 saniye bekleniyor...
+2025-10-23 07:35:27,719 - INFO - 🔍 Fortnite için veri çekiliyor...
+2025-10-23 07:35:29,845 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:35:29,848 - INFO - Retrying request to /chat/completions in 0.421687 seconds
+2025-10-23 07:35:30,560 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:35:30,563 - INFO - Retrying request to /chat/completions in 0.780607 seconds
+2025-10-23 07:35:31,583 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 07:35:31,587 - ERROR - OpenAI JSON hatası (Fortnite): Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2025-10-23 07:35:31,591 - ERROR - ❌ Fortnite analizi başarısız.
+2025-10-23 18:23:52,235 - INFO - 🚀 Tüm oyunların yama analizi başlatılıyor...
+2025-10-23 18:23:52,237 - INFO - 🔍 Valorant için veri çekiliyor...
+2025-10-23 18:23:57,318 - WARNING - ⚠️  Valorant için veri yok. Fallback metin kullanılıyor.
+2025-10-23 18:24:00,023 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 18:24:00,025 - INFO - Retrying request to /chat/completions in 0.482668 seconds
+2025-10-23 18:24:02,041 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 18:24:02,042 - INFO - Retrying request to /chat/completions in 0.922017 seconds
+2025-10-23 18:24:04,534 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 18:24:04,571 - ERROR - OpenAI JSON hatası (Valorant): Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2025-10-23 18:24:04,574 - ERROR - ❌ Valorant analizi başarısız.
+2025-10-23 18:24:04,579 - INFO - ⏳ OpenAI rate limit koruması için 5.2 saniye bekleniyor...
+2025-10-23 18:24:10,273 - INFO - 🔍 Roblox için veri çekiliyor...
+2025-10-23 18:24:12,335 - WARNING - Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self-signed certificate (_ssl.c:1028)'))': /docs/reference/updates.rss
+2025-10-23 18:24:37,343 - WARNING - Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ReadTimeoutError("HTTPSConnectionPool(host='create.roblox.com', port=443): Read timed out. (read timeout=15)")': /docs/reference/updates.rss
+2025-10-23 18:24:57,372 - WARNING - Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ReadTimeoutError("HTTPSConnectionPool(host='create.roblox.com', port=443): Read timed out. (read timeout=15)")': /docs/reference/updates.rss
+2025-10-23 18:25:16,685 - WARNING - Roblox RSS hatası: HTTPSConnectionPool(host='create.roblox.com', port=443): Max retries exceeded with url: /docs/reference/updates.rss (Caused by ReadTimeoutError("HTTPSConnectionPool(host='create.roblox.com', port=443): Read timed out. (read timeout=15)"))
+2025-10-23 18:25:17,096 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 18:25:17,098 - INFO - Retrying request to /chat/completions in 0.383242 seconds
+2025-10-23 18:25:18,117 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 18:25:18,119 - INFO - Retrying request to /chat/completions in 0.946014 seconds
+2025-10-23 18:25:19,301 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 18:25:19,303 - ERROR - OpenAI JSON hatası (Roblox): Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2025-10-23 18:25:19,304 - ERROR - ❌ Roblox analizi başarısız.
+2025-10-23 18:25:19,305 - INFO - ⏳ OpenAI rate limit koruması için 8.8 saniye bekleniyor...
+2025-10-23 18:25:28,086 - INFO - 🔍 Minecraft için veri çekiliyor...
+2025-10-23 18:25:30,109 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 18:25:30,111 - INFO - Retrying request to /chat/completions in 0.457571 seconds
+2025-10-23 18:25:31,080 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 18:25:31,083 - INFO - Retrying request to /chat/completions in 0.769390 seconds
+2025-10-23 18:25:32,532 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 18:25:32,535 - ERROR - OpenAI JSON hatası (Minecraft): Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2025-10-23 18:25:32,540 - ERROR - ❌ Minecraft analizi başarısız.
+2025-10-23 18:25:32,551 - INFO - ⏳ OpenAI rate limit koruması için 7.3 saniye bekleniyor...
+2025-10-23 18:25:39,850 - INFO - 🔍 League of Legends için veri çekiliyor...
+2025-10-23 18:25:43,163 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 18:25:43,168 - INFO - Retrying request to /chat/completions in 0.427832 seconds
+2025-10-23 18:25:44,194 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 18:25:44,261 - INFO - Retrying request to /chat/completions in 0.973917 seconds
+2025-10-23 18:25:45,478 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 18:25:45,480 - ERROR - OpenAI JSON hatası (League of Legends): Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2025-10-23 18:25:45,485 - ERROR - ❌ League of Legends analizi başarısız.
+2025-10-23 18:25:45,487 - INFO - ⏳ OpenAI rate limit koruması için 7.6 saniye bekleniyor...
+2025-10-23 18:25:53,066 - INFO - 🔍 Counter-Strike 2 için veri çekiliyor...
+2025-10-23 18:25:56,535 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 18:25:56,536 - INFO - Retrying request to /chat/completions in 0.376699 seconds
+2025-10-23 18:25:57,159 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 18:25:57,162 - INFO - Retrying request to /chat/completions in 0.836524 seconds
+2025-10-23 18:25:59,526 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 18:25:59,528 - ERROR - OpenAI JSON hatası (Counter-Strike 2): Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2025-10-23 18:25:59,530 - ERROR - ❌ Counter-Strike 2 analizi başarısız.
+2025-10-23 18:25:59,531 - INFO - ⏳ OpenAI rate limit koruması için 11.9 saniye bekleniyor...
+2025-10-23 18:26:11,464 - INFO - 🔍 Fortnite için veri çekiliyor...
+2025-10-23 18:26:14,188 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 18:26:14,191 - INFO - Retrying request to /chat/completions in 0.424494 seconds
+2025-10-23 18:26:14,878 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 18:26:14,880 - INFO - Retrying request to /chat/completions in 0.842055 seconds
+2025-10-23 18:26:15,921 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 18:26:15,927 - ERROR - OpenAI JSON hatası (Fortnite): Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2025-10-23 18:26:15,937 - ERROR - ❌ Fortnite analizi başarısız.
+2025-10-23 20:05:07,217 - INFO - 🚀 Tüm oyunların yama analizi başlatılıyor...
+2025-10-23 20:05:07,218 - INFO - 🔍 Valorant için veri çekiliyor...
+2025-10-23 20:05:25,349 - WARNING - ⚠️  Valorant için veri yok. Fallback metin kullanılıyor.
+2025-10-23 20:05:27,767 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 20:05:27,771 - INFO - Retrying request to /chat/completions in 0.396769 seconds
+2025-10-23 20:05:29,744 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 20:05:29,746 - INFO - Retrying request to /chat/completions in 0.856817 seconds
+2025-10-23 20:05:31,010 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 20:05:31,015 - ERROR - OpenAI JSON hatası (Valorant): Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2025-10-23 20:05:31,018 - ERROR - ❌ Valorant analizi başarısız.
+2025-10-23 20:05:31,018 - INFO - ⏳ OpenAI rate limit koruması için 9.4 saniye bekleniyor...
+2025-10-23 20:05:40,433 - INFO - 🔍 Roblox için veri çekiliyor...
+2025-10-23 20:05:55,467 - WARNING - Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x0000021333431310>, 'Connection to create.roblox.com timed out. (connect timeout=15)')': /docs/reference/updates.rss
+2025-10-23 20:06:14,472 - WARNING - Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ReadTimeoutError("HTTPSConnectionPool(host='create.roblox.com', port=443): Read timed out. (read timeout=15)")': /docs/reference/updates.rss
+2025-10-23 20:06:33,482 - WARNING - Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x0000021333431590>, 'Connection to create.roblox.com timed out. (connect timeout=15)')': /docs/reference/updates.rss
+2025-10-23 20:06:35,541 - WARNING - Roblox RSS hatası: HTTPSConnectionPool(host='create.roblox.com', port=443): Max retries exceeded with url: /docs/reference/updates.rss (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self-signed certificate (_ssl.c:1028)')))
+2025-10-23 20:06:37,047 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 20:06:37,050 - INFO - Retrying request to /chat/completions in 0.384625 seconds
+2025-10-23 20:06:37,644 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 20:06:37,646 - INFO - Retrying request to /chat/completions in 0.904807 seconds
+2025-10-23 20:06:39,021 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 20:06:39,023 - ERROR - OpenAI JSON hatası (Roblox): Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2025-10-23 20:06:39,024 - ERROR - ❌ Roblox analizi başarısız.
+2025-10-23 20:06:39,024 - INFO - ⏳ OpenAI rate limit koruması için 5.0 saniye bekleniyor...
+2025-10-23 20:06:44,046 - INFO - 🔍 Minecraft için veri çekiliyor...
+2025-10-23 20:06:46,674 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 20:06:46,675 - INFO - Retrying request to /chat/completions in 0.412192 seconds
+2025-10-23 20:06:47,325 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 20:06:47,327 - INFO - Retrying request to /chat/completions in 0.830800 seconds
+2025-10-23 20:06:48,385 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 20:06:48,387 - ERROR - OpenAI JSON hatası (Minecraft): Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2025-10-23 20:06:48,388 - ERROR - ❌ Minecraft analizi başarısız.
+2025-10-23 20:06:48,392 - INFO - ⏳ OpenAI rate limit koruması için 9.9 saniye bekleniyor...
+2025-10-23 20:06:58,329 - INFO - 🔍 League of Legends için veri çekiliyor...
+2025-10-23 20:07:07,080 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 20:07:07,086 - INFO - Retrying request to /chat/completions in 0.412033 seconds
+2025-10-23 20:07:08,012 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 20:07:08,014 - INFO - Retrying request to /chat/completions in 0.875675 seconds
+2025-10-23 20:07:09,142 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 20:07:09,151 - ERROR - OpenAI JSON hatası (League of Legends): Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2025-10-23 20:07:09,157 - ERROR - ❌ League of Legends analizi başarısız.
+2025-10-23 20:07:09,161 - INFO - ⏳ OpenAI rate limit koruması için 5.3 saniye bekleniyor...
+2025-10-23 20:07:14,510 - INFO - 🔍 Counter-Strike 2 için veri çekiliyor...
+2025-10-23 20:07:17,010 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 20:07:17,013 - INFO - Retrying request to /chat/completions in 0.469150 seconds
+2025-10-23 20:07:17,676 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 20:07:17,683 - INFO - Retrying request to /chat/completions in 0.918189 seconds
+2025-10-23 20:07:18,836 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 20:07:18,838 - ERROR - OpenAI JSON hatası (Counter-Strike 2): Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2025-10-23 20:07:18,844 - ERROR - ❌ Counter-Strike 2 analizi başarısız.
+2025-10-23 20:07:18,846 - INFO - ⏳ OpenAI rate limit koruması için 10.8 saniye bekleniyor...
+2025-10-23 20:07:29,698 - INFO - 🔍 Fortnite için veri çekiliyor...
+2025-10-23 20:07:31,998 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 20:07:32,000 - INFO - Retrying request to /chat/completions in 0.378374 seconds
+2025-10-23 20:07:32,594 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 20:07:32,602 - INFO - Retrying request to /chat/completions in 0.906174 seconds
+2025-10-23 20:07:33,745 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-23 20:07:33,752 - ERROR - OpenAI JSON hatası (Fortnite): Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2025-10-23 20:07:33,754 - ERROR - ❌ Fortnite analizi başarısız.

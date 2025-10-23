@@ -3,4 +3,5 @@ uvicorn[standard]
 python-dotenv
 requests
 beautifulsoup4
-openai
+google-genai
+
