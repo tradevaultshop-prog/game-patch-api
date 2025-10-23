@@ -1,22 +1,24 @@
 # render.yaml
 services:
+  # 1. WEB SERVİSİ (SADECE API SUNAR)
   - type: web
     name: game-patch-api
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
-    # postBuild komutunu ve scrape.py içeren startCommand'ı KALDIRIN.
+    # Web servisi artık scraping komutunu ÇALIŞTIRMAZ.
     envVars:
       - key: GEMINI_API_KEY
         sync: false 
 
-  # 🚨 YENİ EKLENTİ: Veri Toplama İşlemi (Cron Job)
+  # 2. WORKER SERVİSİ (SADECE VERİ TOPLAR VE OLUŞTURUR)
   - type: worker
     name: patch-scraper
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: python scrape.py
-    # schedule: 0 0 * * * # Örn: Her gün gece 00:00'da çalışır (Opsiyonel)
+    # scrape.py, Worker başlatıldığında çalışır ve patches klasörünü oluşturur.
+    # Worker servisi kapatılmaz, sürekli veya periyodik çalışmaya ayarlanabilir.
     envVars:
       - key: GEMINI_API_KEY
         sync: false
