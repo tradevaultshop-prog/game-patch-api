@@ -4,9 +4,19 @@ services:
     name: game-patch-api
     env: python
     buildCommand: pip install -r requirements.txt
-    # 🚨 KRİTİK DEĞİŞİKLİK: Önce scraping yap, sonra API'yi başlat.
-    startCommand: python scrape.py && uvicorn main:app --host 0.0.0.0 --port $PORT 
-    # postBuild komutunu buradan kaldırın (silin)
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    # postBuild komutunu ve scrape.py içeren startCommand'ı KALDIRIN.
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false 
+
+  # 🚨 YENİ EKLENTİ: Veri Toplama İşlemi (Cron Job)
+  - type: worker
+    name: patch-scraper
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python scrape.py
+    # schedule: 0 0 * * * # Örn: Her gün gece 00:00'da çalışır (Opsiyonel)
     envVars:
       - key: GEMINI_API_KEY
         sync: false
