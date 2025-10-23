@@ -5,20 +5,21 @@ services:
     name: game-patch-api
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
-    # Web servisi artık scraping komutunu ÇALIŞTIRMAZ.
+    # Sadece API'yi başlat. Scraping komutunu ÇIKAR.
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT 
     envVars:
       - key: GEMINI_API_KEY
         sync: false 
 
-  # 2. WORKER SERVİSİ (SADECE VERİ TOPLAR VE OLUŞTURUR)
+  # 2. WORKER SERVİSİ (VERİ OLUŞTURMA İŞİ)
   - type: worker
     name: patch-scraper
     env: python
+    # Worker, API ile aynı bağımlılıklara ihtiyaç duyar.
     buildCommand: pip install -r requirements.txt
+    # Worker'ın tek görevi scraping scriptini çalıştırmaktır.
     startCommand: python scrape.py
-    # scrape.py, Worker başlatıldığında çalışır ve patches klasörünü oluşturur.
-    # Worker servisi kapatılmaz, sürekli veya periyodik çalışmaya ayarlanabilir.
+    # Not: worker servisini Render'da manuel olarak başlatmanız/planlamanız gerekebilir.
     envVars:
       - key: GEMINI_API_KEY
         sync: false
