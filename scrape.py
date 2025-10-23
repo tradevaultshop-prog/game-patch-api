@@ -4,26 +4,26 @@ import time
 import random
 import logging
 from datetime import datetime
-# Yeni sistemde OpenAI kaldırıldı
+# Yeni sistemde OpenAI kald?r?ld?
 # from openai import OpenAI 
 from dotenv import load_dotenv
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
-# 🧠 Düzeltme: save_json bu dosyada olduğu için sadece analyze_with_gemini içe aktarılıyor
+# ?? Duzeltme: save_json bu dosyada oldu?u icin sadece analyze_with_gemini ice aktar?l?yor
 from utils import analyze_with_gemini 
 
-# 🔐 .env dosyasını yükle
+# ?? .env dosyas?n? yukle
 load_dotenv()
-# Anahtar ismi GEMINI_API_KEY olarak değişti
+# Anahtar ismi GEMINI_API_KEY olarak de?i?ti
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not GEMINI_API_KEY:
-    # Hata kontrolünü Gemini anahtarına göre güncelleyin
-    raise ValueError("❌ .env dosyasında GEMINI_API_KEY tanımlı değil!")
+    # Hata kontrolunu Gemini anahtar?na gore guncelleyin
+    raise ValueError("? .env dosyas?nda GEMINI_API_KEY tan?ml? de?il!")
 
-# 📝 Logging ayarı 
+# ?? Logging ayar? 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -33,7 +33,7 @@ logging.basicConfig(
     ]
 )
 
-# 🌐 Güvenilir session 
+# ?? Guvenilir session 
 def create_session():
     session = requests.Session()
     retries = Retry(total=3, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504])
@@ -46,7 +46,7 @@ def create_session():
 session = create_session()
 
 # ================================
-# 🎮 SCRAPER FONKSİYONLARI 
+# ?? SCRAPER FONKS?YONLARI 
 # ================================
 def fetch_valorant_patch_notes():
     url = "https://playvalorant.com/en-us/news/game-updates/"
@@ -65,13 +65,14 @@ def fetch_valorant_patch_notes():
                     return content_div.get_text(separator="\n", strip=True)[:3000]
         return None
     except Exception as e:
-        logging.warning(f"Valorant scraping hatası: {e}")
+        logging.warning(f"Valorant scraping hatas?: {e}")
         return None
 
 def fetch_roblox_patch_notes():
     try:
         res = session.get("https://create.roblox.com/docs/reference/updates.rss", timeout=15)
-        soup = BeautifulSoup(res.text, "xml")
+        # DUZELTME: XML ayr??t?r?c?s? olarak 'lxml-xml' kullan?l?yor.
+        soup = BeautifulSoup(res.text, "lxml-xml") 
         item = soup.find("item")
         if item:
             title = item.find("title").text if item.find("title") else "Roblox Update"
@@ -79,13 +80,14 @@ def fetch_roblox_patch_notes():
             return f"{title}\n{desc}"[:500]
         return "Roblox platform updates."
     except Exception as e:
-        logging.warning(f"Roblox RSS hatası: {e}")
+        logging.warning(f"Roblox RSS hatas?: {e}")
         return "Roblox updated core systems."
 
 def fetch_minecraft_patch_notes():
     try:
         res = session.get("https://www.minecraft.net/en-us/feeds/community-content/rss", timeout=15)
-        soup = BeautifulSoup(res.text, "xml")
+        # DUZELTME: XML ayr??t?r?c?s? olarak 'lxml-xml' kullan?l?yor.
+        soup = BeautifulSoup(res.text, "lxml-xml")
         item = soup.find("item")
         if item:
             title = item.find("title").text if item.find("title") else "Minecraft Update"
@@ -93,7 +95,7 @@ def fetch_minecraft_patch_notes():
             return f"{title}\n{desc}"[:500]
         return "Minecraft new features added."
     except Exception as e:
-        logging.warning(f"Minecraft scraping hatası: {e}")
+        logging.warning(f"Minecraft scraping hatas?: {e}")
         return "Minecraft added new biomes and mobs."
 
 def fetch_league_patch_notes():
@@ -109,7 +111,7 @@ def fetch_league_patch_notes():
             return content.get_text(separator="\n", strip=True)[:3000] if content else "New LoL patch."
         return "League of Legends balance changes."
     except Exception as e:
-        logging.warning(f"LoL scraping hatası: {e}")
+        logging.warning(f"LoL scraping hatas?: {e}")
         return "Jhin damage reduced. New rune added."
 
 def fetch_cs2_patch_notes():
@@ -123,7 +125,7 @@ def fetch_cs2_patch_notes():
             return f"{title}\n{content}"[:3000]
         return "CS2 bug fixes."
     except Exception as e:
-        logging.warning(f"CS2 scraping hatası: {e}")
+        logging.warning(f"CS2 scraping hatas?: {e}")
         return "CS2: Fixed smoke grenade collision."
 
 def fetch_fortnite_patch_notes():
@@ -139,11 +141,11 @@ def fetch_fortnite_patch_notes():
             return main.get_text(separator="\n", strip=True)[:3000] if main else "Fortnite new season."
         return "Fortnite: New weapons and map changes."
     except Exception as e:
-        logging.warning(f"Fortnite scraping hatası: {e}")
+        logging.warning(f"Fortnite scraping hatas?: {e}")
         return "Added Shockwave Grenade. Tilted Towers returns."
 
 # ================================
-# 💾 Kaydet (BU FONKSİYON BU DOSYADA KALMALI)
+# ?? Kaydet (BU FONKS?YON BU DOSYADA KALMALI)
 # ================================
 def save_json(data, base_name):
     os.makedirs("patches", exist_ok=True)
@@ -152,14 +154,14 @@ def save_json(data, base_name):
     path = os.path.join("patches", filename)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
-    logging.info(f"✅ JSON kaydedildi: {path}")
+    logging.info(f"? JSON kaydedildi: {path}")
 
 # ================================
-# 🚀 Ana Çalıştırma (Gemini ile güncellendi)
+# ?? Ana Cal??t?rma (Gemini ile guncellendi)
 # ================================
 
 if __name__ == "__main__":
-    logging.info("🚀 Tüm oyunların yama analizi başlatılıyor...")
+    logging.info("?? Tum oyunlar?n yama analizi ba?lat?l?yor...")
 
     games = {
         "Valorant": fetch_valorant_patch_notes,
@@ -167,28 +169,28 @@ if __name__ == "__main__":
         "Minecraft": fetch_minecraft_patch_notes,
         "League of Legends": fetch_league_patch_notes,
         "Counter-Strike 2": fetch_cs2_patch_notes,
-        "Fortnite": fetch_fortnite_patch_notes, # <-- SÖZDİZİMİ HATASI DÜZELTİLDİ
+        "Fortnite": fetch_fortnite_patch_notes, # <-- SOZD?Z?M? HATASI DUZELT?LD?
     }
 
     for i, (game_name, fetch_fn) in enumerate(games.items()):
-        logging.info(f"🔍 {game_name} için veri çekiliyor...")
+        logging.info(f"?? {game_name} icin veri cekiliyor...")
         raw = fetch_fn()
         if not raw:
             fallback = f"{game_name} received balance changes and new content."
-            logging.warning(f"⚠️  {game_name} için veri yok. Fallback metin kullanılıyor.")
+            logging.warning(f"??? {game_name} icin veri yok. Fallback metin kullan?l?yor.")
             raw = fallback
 
-        # 🔄 Gemini fonksiyonu çağrılıyor
+        # ?? Gemini fonksiyonu ca?r?l?yor
         result = analyze_with_gemini(raw, game_name) 
         
         if result:
             safe_name = game_name.lower().replace(" ", "_").replace("-", "_").replace(".", "")
             save_json(result, safe_name)
         else:
-            logging.error(f"❌ {game_name} analizi başarısız.")
+            logging.error(f"? {game_name} analizi ba?ar?s?z.")
 
-        # Rate limit koruması: bekleme süresi aynı kaldı, 
-        if i < len(games) - 1:  # Son öğe için bekleme gerekmez
+        # Rate limit korumas?: bekleme suresi ayn? kald?, 
+        if i < len(games) - 1:  # Son o?e icin bekleme gerekmez
             delay = random.uniform(5, 12)
-            logging.info(f"⏳ Gemini rate limit koruması için {delay:.1f} saniye bekleniyor...")
+            logging.info(f"? Gemini rate limit korumas? icin {delay:.1f} saniye bekleniyor...")
             time.sleep(delay)
