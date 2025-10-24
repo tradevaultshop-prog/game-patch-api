@@ -12,16 +12,16 @@ services:
         sync: false 
 
   # 2. ZAMANLANMIŞ GÖREV (VERİ OLUŞTURMA İŞİ)
-- type: cron
-  name: patch-scraper
-  env: python
-  # Cron Job, API ile aynı bağımlılıklara ihtiyaç duyar.
-  buildCommand: pip install -r requirements.txt
-  # Cron Job'un tek görevi scraping scriptini çalıştırmaktır.
-  startCommand: python scrape.py
-  # "schedule" alanı, betiğin ne zaman çalışacağını belirler.
-  # Bu örnek: "Her 4 saatin başında çalıştır" (0 0,4,8,12,16,20 * * *)
-  schedule: "0 */4 * * *" 
-  envVars:
-    - key: GEMINI_API_KEY
-      sync: false
+  - type: cron
+    name: patch-scraper
+    env: python
+    # Cron Job, API ile aynı bağımlılıklara ihtiyaç duyar.
+    buildCommand: pip install -r requirements.txt
+    # Cron Job'un tek görevi scraping scriptini çalıştırmaktır.
+    startCommand: python scrape.py
+    # "schedule" alanı, betiğin ne zaman çalışacağını belirler.
+    # Bu örnek: "Her 4 saatin başında çalıştır" (0 0,4,8,12,16,20 * * *)
+    schedule: "0 */4 * * *" 
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
