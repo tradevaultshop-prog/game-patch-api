@@ -3,27 +3,32 @@ import json
 import time
 import random
 import logging
+import boto3 # <-- YENİ EKLENDİ
 from datetime import datetime
-# Yeni sistemde OpenAI kald?r?ld?
-# from openai import OpenAI 
 from dotenv import load_dotenv
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
-# ?? Duzeltme: save_json bu dosyada oldu?u icin sadece analyze_with_gemini ice aktar?l?yor
 from utils import analyze_with_gemini 
 
-# ?? .env dosyas?n? yukle
 load_dotenv()
-# Anahtar ismi GEMINI_API_KEY olarak de?i?ti
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-if not GEMINI_API_KEY:
-    # Hata kontrolunu Gemini anahtar?na gore guncelleyin
-    raise ValueError("? .env dosyas?nda GEMINI_API_KEY tan?ml? de?il!")
+# --- YENİ EKLENDİ: S3 Client Kurulumu ---
+s3_client = boto3.client(
+    "s3",
+    endpoint_url=os.getenv("S3_ENDPOINT_URL"),
+    aws_access_key_id=os.getenv("S3_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("S3_SECRET_ACCESS_KEY"),
+    region_name="auto", # Cloudflare R2 için genellikle 'auto' kullanılır
+)
+S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
+# -----------------------------------------
 
-# ?? Logging ayar? 
+if not GEMINI_API_KEY or not S3_BUCKET_NAME:
+    raise ValueError("❌ .env dosyasında GEMINI_API_KEY veya S3 bilgileri eksik!")
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -33,8 +38,8 @@ logging.basicConfig(
     ]
 )
 
-# ?? Guvenilir session 
 def create_session():
+    # ... (Bu fonksiyon değişmedi)
     session = requests.Session()
     retries = Retry(total=3, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504])
     session.mount("https://", HTTPAdapter(max_retries=retries))
@@ -45,9 +50,8 @@ def create_session():
 
 session = create_session()
 
-# ================================
-# ?? SCRAPER FONKS?YONLARI 
-# ================================
+# --- SCRAPER FONKSİYONLARI ---
+# ... (fetch_valorant_patch_notes, fetch_roblox_patch_notes vb. fonksiyonlar değişmedi)
 def fetch_valorant_patch_notes():
     url = "https://playvalorant.com/en-us/news/game-updates/"
     try:
@@ -65,13 +69,12 @@ def fetch_valorant_patch_notes():
                     return content_div.get_text(separator="\n", strip=True)[:3000]
         return None
     except Exception as e:
-        logging.warning(f"Valorant scraping hatas?: {e}")
+        logging.warning(f"Valorant scraping hatası: {e}")
         return None
 
 def fetch_roblox_patch_notes():
     try:
         res = session.get("https://create.roblox.com/docs/reference/updates.rss", timeout=15)
-        # DUZELTME: XML ayr??t?r?c?s? olarak 'lxml-xml' kullan?l?yor.
         soup = BeautifulSoup(res.text, "lxml-xml") 
         item = soup.find("item")
         if item:
@@ -80,13 +83,12 @@ def fetch_roblox_patch_notes():
             return f"{title}\n{desc}"[:500]
         return "Roblox platform updates."
     except Exception as e:
-        logging.warning(f"Roblox RSS hatas?: {e}")
+        logging.warning(f"Roblox RSS hatası: {e}")
         return "Roblox updated core systems."
 
 def fetch_minecraft_patch_notes():
     try:
         res = session.get("https://www.minecraft.net/en-us/feeds/community-content/rss", timeout=15)
-        # DUZELTME: XML ayr??t?r?c?s? olarak 'lxml-xml' kullan?l?yor.
         soup = BeautifulSoup(res.text, "lxml-xml")
         item = soup.find("item")
         if item:
@@ -95,7 +97,7 @@ def fetch_minecraft_patch_notes():
             return f"{title}\n{desc}"[:500]
         return "Minecraft new features added."
     except Exception as e:
-        logging.warning(f"Minecraft scraping hatas?: {e}")
+        logging.warning(f"Minecraft scraping hatası: {e}")
         return "Minecraft added new biomes and mobs."
 
 def fetch_league_patch_notes():
@@ -111,7 +113,7 @@ def fetch_league_patch_notes():
             return content.get_text(separator="\n", strip=True)[:3000] if content else "New LoL patch."
         return "League of Legends balance changes."
     except Exception as e:
-        logging.warning(f"LoL scraping hatas?: {e}")
+        logging.warning(f"LoL scraping hatası: {e}")
         return "Jhin damage reduced. New rune added."
 
 def fetch_cs2_patch_notes():
@@ -125,7 +127,7 @@ def fetch_cs2_patch_notes():
             return f"{title}\n{content}"[:3000]
         return "CS2 bug fixes."
     except Exception as e:
-        logging.warning(f"CS2 scraping hatas?: {e}")
+        logging.warning(f"CS2 scraping hatası: {e}")
         return "CS2: Fixed smoke grenade collision."
 
 def fetch_fortnite_patch_notes():
@@ -141,27 +143,32 @@ def fetch_fortnite_patch_notes():
             return main.get_text(separator="\n", strip=True)[:3000] if main else "Fortnite new season."
         return "Fortnite: New weapons and map changes."
     except Exception as e:
-        logging.warning(f"Fortnite scraping hatas?: {e}")
+        logging.warning(f"Fortnite scraping hatası: {e}")
         return "Added Shockwave Grenade. Tilted Towers returns."
 
-# ================================
-# ?? Kaydet (BU FONKS?YON BU DOSYADA KALMALI)
-# ================================
-def save_json(data, base_name):
-    os.makedirs("patches", exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"{base_name}_latest_{timestamp}.json"
-    path = os.path.join("patches", filename)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-    logging.info(f"? JSON kaydedildi: {path}")
 
-# ================================
-# ?? Ana Cal??t?rma (Gemini ile guncellendi)
-# ================================
+# --- DEĞİŞTİRİLDİ: save_json fonksiyonu artık S3'e yazıyor ---
+def save_json_to_s3(data, base_name):
+    # Tahmin edilebilir bir dosya adı kullanıyoruz
+    filename = f"{base_name}_latest.json"
+    try:
+        # Python dict'ini JSON string'ine çeviriyoruz
+        json_string = json.dumps(data, indent=2, ensure_ascii=False)
+        
+        # S3'e yüklüyoruz
+        s3_client.put_object(
+            Bucket=S3_BUCKET_NAME,
+            Key=filename,
+            Body=json_string,
+            ContentType="application/json"
+        )
+        logging.info(f"✅ JSON S3'e kaydedildi: {S3_BUCKET_NAME}/{filename}")
+    except Exception as e:
+        logging.error(f"❌ S3'e yazma hatası ({filename}): {e}")
+# -----------------------------------------------------------
 
 if __name__ == "__main__":
-    logging.info("?? Tum oyunlar?n yama analizi ba?lat?l?yor...")
+    logging.info("🚀 Tüm oyunların yama analizi başlatılıyor...")
 
     games = {
         "Valorant": fetch_valorant_patch_notes,
@@ -169,28 +176,27 @@ if __name__ == "__main__":
         "Minecraft": fetch_minecraft_patch_notes,
         "League of Legends": fetch_league_patch_notes,
         "Counter-Strike 2": fetch_cs2_patch_notes,
-        "Fortnite": fetch_fortnite_patch_notes, # <-- SOZD?Z?M? HATASI DUZELT?LD?
+        "Fortnite": fetch_fortnite_patch_notes,
     }
 
     for i, (game_name, fetch_fn) in enumerate(games.items()):
-        logging.info(f"?? {game_name} icin veri cekiliyor...")
+        logging.info(f"🔍 {game_name} için veri çekiliyor...")
         raw = fetch_fn()
         if not raw:
             fallback = f"{game_name} received balance changes and new content."
-            logging.warning(f"??? {game_name} icin veri yok. Fallback metin kullan?l?yor.")
+            logging.warning(f"⚠️  {game_name} için veri yok. Fallback metin kullanılıyor.")
             raw = fallback
 
-        # ?? Gemini fonksiyonu ca?r?l?yor
         result = analyze_with_gemini(raw, game_name) 
         
         if result:
             safe_name = game_name.lower().replace(" ", "_").replace("-", "_").replace(".", "")
-            save_json(result, safe_name)
+            # DEĞİŞTİRİLDİ: Yeni S3 fonksiyonunu çağırıyoruz
+            save_json_to_s3(result, safe_name)
         else:
-            logging.error(f"? {game_name} analizi ba?ar?s?z.")
+            logging.error(f"❌ {game_name} analizi başarısız.")
 
-        # Rate limit korumas?: bekleme suresi ayn? kald?, 
-        if i < len(games) - 1:  # Son o?e icin bekleme gerekmez
+        if i < len(games) - 1:
             delay = random.uniform(5, 12)
-            logging.info(f"? Gemini rate limit korumas? icin {delay:.1f} saniye bekleniyor...")
+            logging.info(f"⏳ Gemini rate limit koruması için {delay:.1f} saniye bekleniyor...")
             time.sleep(delay)
