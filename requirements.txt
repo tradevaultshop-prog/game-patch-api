@@ -6,3 +6,4 @@ beautifulsoup4
 google-genai
 lxml
 boto3
+PyYAML

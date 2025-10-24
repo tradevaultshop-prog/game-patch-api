@@ -1,0 +1,23 @@
+- game: "Valorant"
+  fetch_function: "fetch_valorant_patch_notes"
+  safe_name: "valorant"
+
+- game: "Roblox"
+  fetch_function: "fetch_roblox_patch_notes"
+  safe_name: "roblox"
+
+- game: "Minecraft"
+  fetch_function: "fetch_minecraft_patch_notes"
+  safe_name: "minecraft"
+
+- game: "League of Legends"
+  fetch_function: "fetch_league_patch_notes"
+  safe_name: "league_of_legends"
+
+- game: "Counter-Strike 2"
+  fetch_function: "fetch_cs2_patch_notes"
+  safe_name: "counter_strike_2"
+
+- game: "Fortnite"
+  fetch_function: "fetch_fortnite_patch_notes"
+  safe_name: "fortnite"
