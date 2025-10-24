@@ -3,10 +3,10 @@ import json
 import time
 import random
 import logging
-import boto3 # <-- YENİ EKLENDİ
+import boto3
+import requests # <-- YENİ EKLENDİ
 from datetime import datetime
 from dotenv import load_dotenv
-import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
@@ -15,19 +15,33 @@ from utils import analyze_with_gemini
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# --- YENİ EKLENDİ: S3 Client Kurulumu ---
 s3_client = boto3.client(
     "s3",
     endpoint_url=os.getenv("S3_ENDPOINT_URL"),
     aws_access_key_id=os.getenv("S3_ACCESS_KEY_ID"),
     aws_secret_access_key=os.getenv("S3_SECRET_ACCESS_KEY"),
-    region_name="auto", # Cloudflare R2 için genellikle 'auto' kullanılır
+    region_name="auto", 
 )
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
-# -----------------------------------------
+
+# --- YENİ EKLENDİ: Slack Hata Bildirimi (Öneri 4.1) ---
+SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
+
+def send_alert(message):
+    if not SLACK_WEBHOOK_URL:
+        logging.warning("SLACK_WEBHOOK_URL tanımlı değil. Bildirim atlanıyor.")
+        return
+    try:
+        payload = {"text": f"🚨 **GPNAI Cron Job Hatası** 🚨\n\n```{message}```"}
+        requests.post(SLACK_WEBHOOK_URL, json=payload, timeout=5)
+    except Exception as e:
+        logging.error(f"Slack bildirimi gönderilemedi: {e}")
+# -----------------------------------------------------------
 
 if not GEMINI_API_KEY or not S3_BUCKET_NAME:
-    raise ValueError("❌ .env dosyasında GEMINI_API_KEY veya S3 bilgileri eksik!")
+    error_msg = "❌ .env dosyasında GEMINI_API_KEY veya S3 bilgileri eksik!"
+    send_alert(error_msg) # <-- Hata bildirimi eklendi
+    raise ValueError(error_msg)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -146,16 +160,10 @@ def fetch_fortnite_patch_notes():
         logging.warning(f"Fortnite scraping hatası: {e}")
         return "Added Shockwave Grenade. Tilted Towers returns."
 
-
-# --- DEĞİŞTİRİLDİ: save_json fonksiyonu artık S3'e yazıyor ---
 def save_json_to_s3(data, base_name):
-    # Tahmin edilebilir bir dosya adı kullanıyoruz
     filename = f"{base_name}_latest.json"
     try:
-        # Python dict'ini JSON string'ine çeviriyoruz
         json_string = json.dumps(data, indent=2, ensure_ascii=False)
-        
-        # S3'e yüklüyoruz
         s3_client.put_object(
             Bucket=S3_BUCKET_NAME,
             Key=filename,
@@ -165,38 +173,47 @@ def save_json_to_s3(data, base_name):
         logging.info(f"✅ JSON S3'e kaydedildi: {S3_BUCKET_NAME}/{filename}")
     except Exception as e:
         logging.error(f"❌ S3'e yazma hatası ({filename}): {e}")
-# -----------------------------------------------------------
+        send_alert(f"❌ S3'e yazma hatası ({filename}): {e}") # <-- Hata bildirimi eklendi
 
 if __name__ == "__main__":
     logging.info("🚀 Tüm oyunların yama analizi başlatılıyor...")
+    
+    # --- YENİ EKLENDİ: Tüm betik için hata yakalama ---
+    try:
+        games = {
+            "Valorant": fetch_valorant_patch_notes,
+            "Roblox": fetch_roblox_patch_notes,
+            "Minecraft": fetch_minecraft_patch_notes,
+            "League of Legends": fetch_league_patch_notes,
+            "Counter-Strike 2": fetch_cs2_patch_notes,
+            "Fortnite": fetch_fortnite_patch_notes,
+        }
 
-    games = {
-        "Valorant": fetch_valorant_patch_notes,
-        "Roblox": fetch_roblox_patch_notes,
-        "Minecraft": fetch_minecraft_patch_notes,
-        "League of Legends": fetch_league_patch_notes,
-        "Counter-Strike 2": fetch_cs2_patch_notes,
-        "Fortnite": fetch_fortnite_patch_notes,
-    }
+        for i, (game_name, fetch_fn) in enumerate(games.items()):
+            logging.info(f"🔍 {game_name} için veri çekiliyor...")
+            raw = fetch_fn()
+            if not raw:
+                fallback = f"{game_name} received balance changes and new content."
+                logging.warning(f"⚠️  {game_name} için veri yok. Fallback metin kullanılıyor.")
+                raw = fallback
 
-    for i, (game_name, fetch_fn) in enumerate(games.items()):
-        logging.info(f"🔍 {game_name} için veri çekiliyor...")
-        raw = fetch_fn()
-        if not raw:
-            fallback = f"{game_name} received balance changes and new content."
-            logging.warning(f"⚠️  {game_name} için veri yok. Fallback metin kullanılıyor.")
-            raw = fallback
-
-        result = analyze_with_gemini(raw, game_name) 
+            result = analyze_with_gemini(raw, game_name, send_alert) # send_alert fonksiyonunu utils'e iletiyoruz
+            
+            if result:
+                safe_name = game_name.lower().replace(" ", "_").replace("-", "_").replace(".", "")
+                save_json_to_s3(result, safe_name)
+            else:
+                logging.error(f"❌ {game_name} analizi başarısız.")
+                # utils.py içinde zaten hata bildirimi yapıldı
+            
+            if i < len(games) - 1:
+                delay = random.uniform(5, 12)
+                logging.info(f"⏳ Gemini rate limit koruması için {delay:.1f} saniye bekleniyor...")
+                time.sleep(delay)
         
-        if result:
-            safe_name = game_name.lower().replace(" ", "_").replace("-", "_").replace(".", "")
-            # DEĞİŞTİRİLDİ: Yeni S3 fonksiyonunu çağırıyoruz
-            save_json_to_s3(result, safe_name)
-        else:
-            logging.error(f"❌ {game_name} analizi başarısız.")
-
-        if i < len(games) - 1:
-            delay = random.uniform(5, 12)
-            logging.info(f"⏳ Gemini rate limit koruması için {delay:.1f} saniye bekleniyor...")
-            time.sleep(delay)
+        logging.info("✅ Tüm oyunların yama analizi başarıyla tamamlandı.")
+        
+    except Exception as e:
+        logging.error(f"CRITICAL: Cron Job'da beklenmedik hata: {e}", exc_info=True)
+        send_alert(f"CRITICAL: Cron Job'un tamamı çöktü: {e}")
+    # ----------------------------------------------------
