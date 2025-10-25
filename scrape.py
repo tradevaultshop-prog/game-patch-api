@@ -10,7 +10,7 @@ import scrapers
 import concurrent.futures
 import hashlib
 import sys
-from datetime import datetime # <- YENİ: Zaman damgası için eklendi
+from datetime import datetime
 from dotenv import load_dotenv
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -30,10 +30,40 @@ s3_client = boto3.client(
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
 
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
-
-# --- Telegram Değişkenleri (Bir önceki adımdan) ---
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+
+# --- YENİ EKLENDİ: Skor Hesaplama Fonksiyonları ---
+
+def calculate_impact_score(changes_array):
+    """
+    Gemini'den gelen 'changes' dizisini analiz ederek bir etki skoru (0-10) hesaplar.
+    - nerf/buff/new (Yüksek Etki): 2 puan
+    - fix/diğer (Düşük Etki): 1 puan
+    """
+    if not changes_array:
+        return 0
+    
+    score = 0
+    for change in changes_array:
+        change_type = change.get("type", "").lower()
+        if change_type in ["nerf", "buff", "new"]:
+            score += 2 # Yüksek etki
+        else:
+            score += 1 # Düşük etki (örn: "fix")
+            
+    return min(10, score) # Skoru 10 ile sınırla
+
+def get_impact_label(score):
+    """Sayısal skoru metinsel bir etikete dönüştürür."""
+    if score >= 8:
+        return "Büyük"
+    elif score >= 4:
+        return "Orta"
+    else:
+        return "Küçük"
+
+# --- Telegram & Slack (Güncelleme Yok) ---
 
 def send_telegram_message(message_text, parse_mode="HTML"):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
@@ -59,20 +89,35 @@ def send_alert(message):
     telegram_error_message = f"🚨 GPNAI Servis Uyarısı 🚨\n\n{message}"
     send_telegram_message(telegram_error_message, parse_mode=None)
 
+# --- GÜNCELLENDİ: Telegram Mesajına 'Etki Skoru' Eklendi ---
 def format_patch_notes_for_telegram(json_data):
+    """
+    Analiz edilmiş JSON verisini profesyonel bir Telegram mesajına dönüştürür.
+    Artık Etki Skorunu [cite: 1.1] da içeriyor.
+    """
     try:
         game = json_data.get('game', 'Bilinmeyen Oyun')
         version = json_data.get('patch_version', 'unknown')
         date = json_data.get('date', 'unknown')
         changes = json_data.get('changes', [])
+        
+        # YENİ: Skor verilerini JSON'dan oku
+        score = json_data.get('impact_score', 0)
+        label = json_data.get('impact_label', 'Küçük')
+        # Emoji seçimi
+        emoji = "🔥" if label == "Büyük" else ("⚠️" if label == "Orta" else "ℹ️")
 
         message = f"✅ <b>{game} için Yeni Yama Notları Analiz Edildi!</b>\n\n"
+        
+        # YENİ: Mesajın başına skor eklendi
+        message += f"<b>{emoji} Yama Etki Skoru: {label} ({score}/10)</b>\n\n"
+        
         message += f"<b>Versiyon:</b> <code>{version}</code>\n"
         message += f"<b>Tarih:</b> <code>{date}</code>\n"
         message += "-----------------------------------\n"
 
         if not changes:
-            message += "ℹ️ <i>Analiz tamamlandı ancak raporlanacak (nerf, buff, new, fix) önemli bir değişiklik bulunamadı.</i>"
+            message += "<i>Analiz tamamlandı ancak raporlanacak (nerf, buff, new, fix) önemli bir değişiklik bulunamadı.</i>"
             return message
 
         change_map = {"buff": [], "nerf": [], "new": [], "fix": []}
@@ -96,6 +141,8 @@ def format_patch_notes_for_telegram(json_data):
     except Exception as e:
         logging.error(f"Telegram formatlama hatası: {e}")
         return f"❌ <b>{json_data.get('game', 'Bilinmeyen Oyun')} için formatlama hatası oluştu.</b>"
+
+# --- Geri Kalan Kod (Önceki Arşiv Güncellemesiyle Aynı) ---
 
 if not GEMINI_API_KEY or not S3_BUCKET_NAME:
     error_msg = "❌ .env dosyasında GEMINI_API_KEY veya S3 bilgileri eksik!"
@@ -135,67 +182,46 @@ def save_hash_to_s3(safe_name, new_hash):
         logging.error(f"S3'e hash yazma hatası ({hash_key}): {e}")
         send_alert(f"❌ S3'e hash yazma hatası ({hash_key}): {e}")
 
-# --- GÜNCELLENDİ: Artık S3'e Çift Kayıt (Arşiv + Güncel) Yapıyor ---
 def save_json_to_s3_and_archive(data, base_name):
-    """
-    JSON verisini S3'e iki kez kaydeder:
-    1. Arşiv için zaman damgalı kopya (örn: valorant/20251025_173045.json)
-    2. Güncel API için 'latest' kopyası (örn: valorant_latest.json)
-    """
     try:
         json_string = json.dumps(data, indent=2, ensure_ascii=False)
         
-        # 1. Arşiv Kopyasını Kaydet
-        # Zaman damgasını ve S3 için 'klasör' yapısını oluştur
+        # 1. Arşiv Kopyası
         timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
-        archive_filename = f"{base_name}/{timestamp}.json" # Örn: valorant/20251025_173045.json
-        
+        archive_filename = f"{base_name}/{timestamp}.json"
         s3_client.put_object(
-            Bucket=S3_BUCKET_NAME,
-            Key=archive_filename,
-            Body=json_string,
-            ContentType="application/json"
+            Bucket=S3_BUCKET_NAME, Key=archive_filename, Body=json_string, ContentType="application/json"
         )
         logging.info(f"✅ ARŞİV S3'e kaydedildi: {S3_BUCKET_NAME}/{archive_filename}")
 
-        # 2. Güncel Kopyayı Kaydet (Mevcut API'nin çalışması için)
-        latest_filename = f"{base_name}_latest.json" # Örn: valorant_latest.json
+        # 2. Güncel Kopya
+        latest_filename = f"{base_name}_latest.json"
         s3_client.put_object(
-            Bucket=S3_BUCKET_NAME,
-            Key=latest_filename,
-            Body=json_string,
-            ContentType="application/json"
+            Bucket=S3_BUCKET_NAME, Key=latest_filename, Body=json_string, ContentType="application/json"
         )
         logging.info(f"✅ GÜNCEL S3'e kaydedildi: {S3_BUCKET_NAME}/{latest_filename}")
 
     except Exception as e:
         logging.error(f"❌ S3'e yazma hatası ({base_name}): {e}")
         send_alert(f"❌ S3'e yazma hatası ({base_name}): {e}")
-# -------------------------------------------------------------------
 
 def fetch_game_data(game_config, session):
     game_name = game_config['game']
     safe_name = game_config['safe_name']
     fetch_function_name = game_config['fetch_function']
-    
     try:
         logging.info(f"THREAD 🔍: {game_name} için veri çekiliyor...")
         fetch_function = getattr(scrapers, fetch_function_name)
         raw_data = fetch_function(session)
-        
         if not raw_data:
             logging.warning(f"THREAD ⚠️: {game_name} için veri bulunamadı.")
             return game_name, None, game_config, None 
-
         new_hash = hashlib.sha256(raw_data.encode('utf-8')).hexdigest()
         old_hash = get_hash_from_s3(safe_name)
-        
         if new_hash == old_hash:
             logging.info(f"THREAD ⏩: {game_name} verisi değişmemiş. Gemini analizi atlanıyor.")
             return game_name, raw_data, game_config, "SKIPPED" 
-        
         return game_name, raw_data, game_config, new_hash 
-        
     except Exception as e:
         logging.error(f"THREAD ❌: {game_name} veri çekme hatası: {e}")
         return game_name, None, game_config, None
@@ -208,11 +234,9 @@ def run_health_check():
     except FileNotFoundError:
         send_alert("CRITICAL (Health Check): `sources.yaml` dosyası bulunamadı!")
         return
-
     broken_selectors = []
     logging.info("Sağlık kontrolü için kaynaklar çekiliyor...")
     session = create_session()
-    
     for config in games_config:
         game_name = config['game']
         fetch_function_name = config['fetch_function']
@@ -225,9 +249,7 @@ def run_health_check():
         except Exception as e:
             logging.error(f"HEALTH ❌: {game_name} scraper'ı test sırasında çöktü: {e}")
             broken_selectors.append(f"{game_name} (Çöktü)")
-            
     session.close()
-
     if broken_selectors:
         send_alert(f"❌ PROAKTİF UYARI: Şu scraper'lar bozulmuş olabilir:\n- " + "\n- ".join(broken_selectors))
     else:
@@ -238,20 +260,17 @@ def run_scrape():
     try:
         with open("sources.yaml", "r", encoding="utf-8") as f:
             games_config = yaml.safe_load(f)
-        
         session = create_session()
         fetched_data = [] 
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(games_config)) as executor:
             futures = [executor.submit(fetch_game_data, config, session) for config in games_config]
             for future in concurrent.futures.as_completed(futures):
                 fetched_data.append(future.result())
-
         logging.info(f"✅ Paralel veri çekme tamamlandı. {len(fetched_data)} oyun işlenecek.")
         session.close() 
 
         for i, (game_name, raw_data, config, hash_or_flag) in enumerate(fetched_data):
             if hash_or_flag == "SKIPPED": continue 
-            
             safe_name = config['safe_name']
             if not raw_data:
                 raw_data = f"{game_name} received balance changes and new content."
@@ -262,12 +281,21 @@ def run_scrape():
             result = analyze_with_gemini(raw_data, game_name, send_alert)
             
             if result:
-                # --- GÜNCELLENDİ: Artık yeni fonksiyonu çağırıyor ---
+                # --- YENİ EKLENDİ: Skor Hesaplama ve JSON'a Ekleme ---
+                changes = result.get("changes", [])
+                score = calculate_impact_score(changes)
+                label = get_impact_label(score)
+                result["impact_score"] = score
+                result["impact_label"] = label
+                # --------------------------------------------------
+                
+                # Güncellenmiş 'result' objesini S3'e kaydet
                 save_json_to_s3_and_archive(result, safe_name)
                 
                 if hash_or_flag not in [None, "SKIPPED"]:
                     save_hash_to_s3(safe_name, hash_or_flag)
                 
+                # Güncellenmiş 'result' objesini Telegram'a gönder
                 logging.info(f"TELEGRAM ✉️: {game_name} için başarılı analiz sonucu gönderiliyor...")
                 formatted_message = format_patch_notes_for_telegram(result)
                 send_telegram_message(formatted_message, parse_mode="HTML")

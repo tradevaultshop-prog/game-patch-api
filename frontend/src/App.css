@@ -3,35 +3,128 @@
   background-color: #242424;
   color: rgba(255, 255, 255, 0.87);
 }
+
 body { margin: 0; }
+
 .container {
   max-width: 900px;
   margin: 0 auto;
   padding: 2rem;
 }
-header { text-align: center; border-bottom: 1px solid #555; padding-bottom: 1rem; }
+
+header { 
+  text-align: center; 
+  border-bottom: 1px solid #555; 
+  padding-bottom: 1rem; 
+  margin-bottom: 2rem;
+}
+
 h1 { color: #535bf2; }
-.games-list h2, .patch-details h2 { border-bottom: 1px solid #444; padding-bottom: 8px; }
-.buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 1rem; }
+
+.games-list h2, 
+.patch-details h2,
+.mode-selector h2 {
+  border-bottom: 1px solid #444; 
+  padding-bottom: 8px; 
+}
+
+.games-list, 
+.patch-details,
+.mode-selector {
+  margin-top: 2rem;
+}
+
+.buttons { 
+  display: flex; 
+  flex-wrap: wrap; 
+  gap: 10px; 
+  margin-top: 1rem; 
+}
+
 .buttons button {
   padding: 10px 15px;
   border-radius: 8px;
   border: 1px solid transparent;
   font-weight: 500;
   background-color: #1a1a1a;
+  color: rgba(255, 255, 255, 0.87);
   cursor: pointer;
   transition: border-color 0.25s;
 }
+
 .buttons button:hover { border-color: #535bf2; }
 .buttons button.active { background-color: #535bf2; color: white; }
-.loading, .error { padding: 1rem; border-radius: 8px; margin-top: 1rem; }
+
+.loading, .error { 
+  padding: 1rem; 
+  border-radius: 8px; 
+  margin-top: 1rem; 
+}
+
 .loading { background-color: #333; }
 .error { background-color: #4b2525; color: #ffbaba; }
+
 .json-output {
   background-color: #1a1a1a;
   border-radius: 8px;
   padding: 1rem;
-  overflow-x: auto; /* Yatay kaydırma */
+  overflow-x: auto;
   margin-top: 1rem;
 }
+
 pre { margin: 0; }
+
+.history-controls { margin-bottom: 1rem; }
+
+.history-select {
+  width: 100%;
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: 1px solid #555;
+  font-weight: 500;
+  background-color: #1a1a1a;
+  color: rgba(255, 255, 255, 0.87);
+  cursor: pointer;
+  transition: border-color 0.25s;
+  font-family: inherit;
+  font-size: 1em;
+}
+
+.history-select:hover,
+.history-select:focus {
+  border-color: #535bf2;
+  outline: none;
+}
+
+/* --- YENİ EKLENDİ: Etki Skoru Stilleri --- */
+.impact-display {
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1rem; /* Arşiv seçici ile arasında boşluk bırakır */
+  font-size: 1.1em;
+  font-weight: 500;
+  text-align: center;
+  border: 1px solid;
+}
+.impact-display span {
+  margin-left: 10px;
+  font-weight: bold;
+}
+
+/* Renkler: Küçük (Mavi/Yeşil), Orta (Sarı), Büyük (Kırmızı) */
+.impact-küçük {
+  background-color: #2a3a3a;
+  border-color: #3fa8a8;
+  color: #88f1f1;
+}
+.impact-orta {
+  background-color: #4a4a2a;
+  border-color: #a8a83f;
+  color: #f1f188;
+}
+.impact-büyük {
+  background-color: #4b2525;
+  border-color: #a83f3f;
+  color: #ffbaba;
+}
+
