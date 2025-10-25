@@ -4,8 +4,9 @@ import boto3
 import time
 import threading
 import logging
+import asyncio
 from fastapi import FastAPI, HTTPException, Header, Depends, Query, Request, BackgroundTasks
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from datetime import datetime
@@ -37,12 +38,12 @@ async def verify_key(x_api_key: Optional[str] = Header(None)):
         raise HTTPException(status_code=403, detail="Geçersiz API Anahtarı")
 
 # --- FastAPI Uygulaması ---
-app = FastAPI(title="Game Patch Notes Intelligence API", version="4.3")
+app = FastAPI(title="Game Patch Notes Intelligence API", version="4.4")
 
 # --- CORS Middleware ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Dilersen dashboard domain’iyle sınırlandırabilirsin
+    allow_origins=["*"],  # Dilersen sadece dashboard domainini yazabilirsin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -112,6 +113,7 @@ async def log_api_usage(request: Request, call_next):
 
     return response
 
+
 # ======================================================
 # ==========   S3 OKUMA / CACHE MEKANİZMASI  ===========
 # ======================================================
@@ -128,23 +130,126 @@ def fetch_from_s3(filename: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"S3 Okuma Hatası: {e}")
 
+
+# ======================================================
+# =========   YENİ: SSE (Server-Sent Events)  ==========
+# ======================================================
+
+sse_latest_etags = {}
+sse_lock = asyncio.Lock()
+
+async def check_r2_for_updates():
+    """R2'deki _latest.json dosyalarını kontrol eder ve değişiklik varsa ETag'i günceller."""
+    global sse_latest_etags
+    supported_games_safe_names = [
+        "valorant", "roblox", "minecraft", "league_of_legends",
+        "counter_strike_2", "fortnite"
+    ]
+
+    updated_games = []
+    for safe_name in supported_games_safe_names:
+        latest_key = f"{safe_name}_latest.json"
+        try:
+            response = s3_client.head_object(Bucket=S3_BUCKET_NAME, Key=latest_key)
+            current_etag = response.get("ETag")
+
+            async with sse_lock:
+                last_etag = sse_latest_etags.get(safe_name)
+                if current_etag and current_etag != last_etag:
+                    logging.info(f"SSE: '{safe_name}' için yeni ETag tespit edildi: {current_etag}")
+                    sse_latest_etags[safe_name] = current_etag
+                    updated_games.append(safe_name)
+
+        except s3_client.exceptions.NoSuchKey:
+            continue
+        except Exception as e:
+            logging.warning(f"SSE R2 check hatası ({latest_key}): {e}")
+
+    return updated_games
+
+
+async def event_generator(request: Request):
+    """Client'a SSE olaylarını gönderir. Periyodik olarak R2'yi kontrol eder."""
+    global sse_latest_etags
+
+    async with sse_lock:
+        if not sse_latest_etags:
+            logging.info("SSE: İlk bağlantı, mevcut ETag'ler R2'den okunuyor...")
+            await check_r2_for_updates()
+            logging.info(f"SSE: Başlangıç ETag'leri: {sse_latest_etags}")
+
+    last_check_time = time.time()
+    check_interval = 30  # saniye
+
+    try:
+        while True:
+            if await request.is_disconnected():
+                logging.info("SSE: Client bağlantısı koptu.")
+                break
+
+            current_time = time.time()
+            if current_time - last_check_time >= check_interval:
+                last_check_time = current_time
+                local_copy_etags = {}
+                async with sse_lock:
+                    local_copy_etags = sse_latest_etags.copy()
+
+                supported_games_safe_names = list(local_copy_etags.keys()) or [
+                    "valorant", "roblox", "minecraft", "league_of_legends",
+                    "counter_strike_2", "fortnite"
+                ]
+
+                for safe_name in supported_games_safe_names:
+                    latest_key = f"{safe_name}_latest.json"
+                    try:
+                        response = s3_client.head_object(Bucket=S3_BUCKET_NAME, Key=latest_key)
+                        current_etag = response.get("ETag")
+                        last_etag = local_copy_etags.get(safe_name)
+
+                        if current_etag and current_etag != last_etag:
+                            logging.info(f"SSE: '{safe_name}' için değişiklik tespit edildi!")
+                            async with sse_lock:
+                                sse_latest_etags[safe_name] = current_etag
+                            event_data = json.dumps({"type": "new_patch", "game": safe_name})
+                            yield f"data: {event_data}\n\n"
+
+                    except s3_client.exceptions.NoSuchKey:
+                        continue
+                    except Exception as e:
+                        logging.warning(f"SSE R2 check hatası ({latest_key}): {e}")
+
+            await asyncio.sleep(5)
+
+    except asyncio.CancelledError:
+        logging.info("SSE: Generator iptal edildi.")
+    finally:
+        logging.info("SSE: Event generator sonlandı.")
+
+
+@app.get("/events")
+async def sse_endpoint(request: Request):
+    """Client'ların SSE akışına abone olacağı endpoint."""
+    return StreamingResponse(event_generator(request), media_type="text/event-stream")
+
+
 # ======================================================
 # ================   ENDPOINTLER   =====================
 # ======================================================
 
 @app.get("/")
 def root():
-    return {"message": "Game Patch Notes Intelligence API (v4.3 w/Index + Logs)", "docs": "/docs"}
+    return {"message": "Game Patch Notes Intelligence API (v4.4 w/Logs + SSE)", "docs": "/docs"}
+
 
 @app.get("/health")
 def health_check():
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
 
-# --- Public Endpoint: Son yama verisi ---
+
 @app.get("/public/patches")
 def get_public_patches(game: str = None):
     if not game:
-        raise HTTPException(status_code=400, detail="Lütfen bir oyun adı belirtin (örn: /public/patches?game=Valorant).")
+        raise HTTPException(status_code=400, detail="Lütfen bir oyun adı belirtin.")
     safe_name = game.lower().replace(" ", "_").replace("-", "_").replace(".", "")
     filename = f"{safe_name}_latest.json"
 
@@ -153,11 +258,11 @@ def get_public_patches(game: str = None):
         return JSONResponse(content=data)
     raise HTTPException(status_code=404, detail=f"'{game}' için yama notu bulunamadı.")
 
-# --- Arşiv Listesi Endpoint’i (Index Dosyasından) ---
+
 @app.get("/public/patches/history")
 def get_public_patch_history(game: str = None):
     if not game:
-        raise HTTPException(status_code=400, detail="Lütfen bir oyun adı belirtin (örn: /public/patches/history?game=Valorant).")
+        raise HTTPException(status_code=400, detail="Lütfen bir oyun adı belirtin.")
     safe_name = game.lower().replace(" ", "_").replace("-", "_").replace(".", "")
     index_key = f"{safe_name}/index.json"
 
@@ -167,26 +272,23 @@ def get_public_patch_history(game: str = None):
         return {"game": game, "archive_count": len(archives), "archives": archives}
     elif data is None:
         return {"game": game, "archive_count": 0, "archives": []}
-    raise HTTPException(status_code=500, detail=f"'{game}' için index dosyası okunamadı veya formatı bozuk.")
+    raise HTTPException(status_code=500, detail=f"'{game}' için index dosyası okunamadı.")
 
-# --- Arşiv Detay Endpoint’i ---
+
 @app.get("/public/patches/archive")
-def get_public_archive_detail(
-    key: str = Query(..., description="S3'teki dosya anahtarı (örn: valorant/20251025_173045.json)")
-):
+def get_public_archive_detail(key: str = Query(..., description="S3'teki dosya anahtarı")):
     if not key or "/" not in key:
-        raise HTTPException(status_code=400, detail="Geçerli bir S3 'key' gereklidir (örn: valorant/20251025_173045.json).")
-
+        raise HTTPException(status_code=400, detail="Geçerli bir S3 'key' gereklidir.")
     data = fetch_from_s3(filename=key)
     if data:
         return JSONResponse(content=data)
-    raise HTTPException(status_code=404, detail=f"'{key}' anahtarlı arşivlenmiş yama notu bulunamadı.")
+    raise HTTPException(status_code=404, detail=f"'{key}' anahtarlı arşiv bulunamadı.")
 
-# --- API Key Koruması Olan Endpoint ---
+
 @app.get("/patches", dependencies=[Depends(verify_key)])
 def get_patches(game: str = None):
     if not game:
-        raise HTTPException(status_code=400, detail="Lütfen bir oyun adı belirtin (örn: /patches?game=Valorant).")
+        raise HTTPException(status_code=400, detail="Lütfen bir oyun adı belirtin.")
     safe_name = game.lower().replace(" ", "_").replace("-", "_").replace(".", "")
     filename = f"{safe_name}_latest.json"
 
@@ -195,12 +297,10 @@ def get_patches(game: str = None):
         return JSONResponse(content=data)
     raise HTTPException(status_code=404, detail=f"'{game}' için yama notu bulunamadı.")
 
-# --- YENİ: Kullanım İstatistikleri Endpoint’i ---
+
 @app.get("/public/stats")
 def get_usage_stats():
-    """
-    R2’deki son log dosyalarını okur ve özet istatistik döner.
-    """
+    """R2’deki loglardan özet istatistik döner."""
     try:
         paginator = s3_client.get_paginator("list_objects_v2")
         pages = paginator.paginate(Bucket=S3_BUCKET_NAME, Prefix="logs/", MaxKeys=20)
@@ -238,4 +338,3 @@ def get_usage_stats():
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"İstatistik okuma hatası: {e}")
-

@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react'
-import axios from 'axios'
+import { useState, useEffect } from "react";
+import axios from "axios";
 
-// --- DİL ÇEVİRİ OBJESİ ---
+// --- DİL ÇEVİRİ OBJESİ (GÜNCELLENDİ) ---
 const i18n = {
   tr: {
     headerTitle: "🎮 Game Patch Notes Intelligence API",
-    headerSubtitle: "En son oyun yamalarını analiz eden ve JSON formatında sunan API hizmeti.",
+    headerSubtitle:
+      "En son oyun yamalarını analiz eden ve JSON formatında sunan API hizmeti.",
     supportedGames: "Desteklenen Oyunlar",
     dataView: "Veri Görünümü",
     latestPatch: "Son Güncel Yama",
@@ -27,11 +28,23 @@ const i18n = {
     newContent: "✨ Yeni İçerik/Değişiklikler",
     fixes: "🔧 Hata Düzeltmeleri (Fixes)",
     other: "📋 Diğer Değişiklikler",
-    noChanges: "ℹ️ Analiz tamamlandı ancak raporlanacak önemli değişiklik bulunamadı."
+    noChanges:
+      "ℹ️ Analiz tamamlandı ancak raporlanacak önemli değişiklik bulunamadı.",
+
+    // --- Yeni eklenen çeviriler ---
+    statistics: "📊 Kullanım İstatistikleri",
+    statsLoading: "🔄 İstatistikler yükleniyor...",
+    statsError: "İstatistikler çekilemedi:",
+    totalRequests: "Toplam Analiz Edilen İstek:",
+    totalErrors: "Toplam Hata:",
+    mostPopular: "En Popüler Oyun:",
+    requestsByGame: "Oyuna Göre İstek Sayıları:",
+    noStats: "Henüz yeterli istatistik verisi yok.",
   },
   en: {
     headerTitle: "🎮 Game Patch Notes Intelligence API",
-    headerSubtitle: "The API service that analyzes the latest game patches and serves them as JSON.",
+    headerSubtitle:
+      "The API service that analyzes the latest game patches and serves them as JSON.",
     supportedGames: "Supported Games",
     dataView: "Data View",
     latestPatch: "Latest Patch",
@@ -53,9 +66,24 @@ const i18n = {
     newContent: "✨ New Content/Changes",
     fixes: "🔧 Bug Fixes",
     other: "📋 Other Changes",
-    noChanges: "ℹ️ Analysis complete, but no significant changes were found."
-  }
+    noChanges:
+      "ℹ️ Analysis complete, but no significant changes were found.",
+
+    // --- New translations ---
+    statistics: "📊 Usage Statistics",
+    statsLoading: "🔄 Loading statistics...",
+    statsError: "Failed to fetch statistics:",
+    totalRequests: "Total Requests Analyzed:",
+    totalErrors: "Total Errors:",
+    mostPopular: "Most Popular Game:",
+    requestsByGame: "Requests per Game:",
+    noStats: "Not enough statistics data yet.",
+  },
 };
+
+// --- API URL ---
+// (API_URL'i bileşenlerin dışına, global bir alana taşıyoruz)
+const API_URL = "https://game-patch-api.onrender.com";
 
 // --- STİLLER ---
 const GlobalStyles = () => (
@@ -130,6 +158,32 @@ const GlobalStyles = () => (
     .change-group-other h3 { color: #ccc; }
     .json-output { background-color: #1a1a1a; border-radius: 8px; padding: 1rem; overflow-x: auto; margin-top: 1rem; }
     pre { margin: 0; }
+
+    /* --- İSTATİSTİK STİLLERİ --- */
+    .stats-section {
+      background-color: #1a1a1a;
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin-top: 2rem;
+    }
+    .stats-section ul { list-style: none; padding: 0; }
+    .stats-section li {
+      margin-bottom: 0.8rem;
+      border-bottom: 1px solid #333;
+      padding-bottom: 0.8rem;
+    }
+    .stats-section li:last-child { border-bottom: none; }
+    .stats-section strong { color: #535bf2; margin-right: 10px; }
+    .game-stats-list li {
+      display: flex;
+      justify-content: space-between;
+      border: none;
+      padding-bottom: 0.3rem;
+      margin-bottom: 0.3rem;
+      font-size: 0.9em;
+    }
+    .game-stats-list span:first-child { color: #ccc; }
+    .game-stats-list span:last-child { font-weight: bold; }
   `}</style>
 );
 
@@ -138,17 +192,28 @@ const ImpactDisplay = ({ score, label, lang }) => {
   if (!score && score !== 0) return null;
   const t = i18n[lang];
   const impactClass = `impact-${label?.toLowerCase()}`;
-  const emoji = label === "Büyük" ? "🔥" : (label === "Orta" ? "⚠️" : "ℹ️");
-
+  const emoji = label === "Büyük" ? "🔥" : label === "Orta" ? "⚠️" : "ℹ️";
   const translatedLabel =
-    label === "Büyük" ? (lang === "tr" ? "Büyük" : "High") :
-    label === "Orta" ? (lang === "tr" ? "Orta" : "Medium") :
-    (lang === "tr" ? "Küçük" : "Low");
+    label === "Büyük"
+      ? lang === "tr"
+        ? "Büyük"
+        : "High"
+      : label === "Orta"
+      ? lang === "tr"
+        ? "Orta"
+        : "Medium"
+      : lang === "tr"
+      ? "Küçük"
+      : "Low";
 
   return (
     <div className={`impact-display ${impactClass}`}>
-      <strong>{emoji} {t.impactScore}</strong>
-      <span>{translatedLabel} ({score} / 10)</span>
+      <strong>
+        {emoji} {t.impactScore}
+      </strong>
+      <span>
+        {translatedLabel} ({score} / 10)
+      </span>
     </div>
   );
 };
@@ -156,10 +221,16 @@ const ImpactDisplay = ({ score, label, lang }) => {
 const PatchNotesDisplay = ({ changes, lang }) => {
   const t = i18n[lang];
   if (!changes || changes.length === 0)
-    return <div className="patch-changes-list"><p><i>{t.noChanges}</i></p></div>;
+    return (
+      <div className="patch-changes-list">
+        <p>
+          <i>{t.noChanges}</i>
+        </p>
+      </div>
+    );
 
   const groups = { buff: [], nerf: [], new: [], fix: [], other: [] };
-  changes.forEach(change => {
+  changes.forEach((change) => {
     const type = change.type?.toLowerCase() || "other";
     if (groups[type]) groups[type].push(change);
     else groups.other.push(change);
@@ -172,33 +243,110 @@ const PatchNotesDisplay = ({ changes, lang }) => {
   };
 
   const titles = {
-    buff: t.buffs, nerf: t.nerfs, new: t.newContent, fix: t.fixes, other: t.other
+    buff: t.buffs,
+    nerf: t.nerfs,
+    new: t.newContent,
+    fix: t.fixes,
+    other: t.other,
   };
 
   return (
     <div className="patch-changes-list">
-      {Object.entries(groups).map(([type, list]) => (
-        list.length > 0 && (
-          <div key={type} className={`change-group change-group-${type}`}>
-            <h3>{titles[type]}</h3>
-            <ul>
-              {list.map((c, i) => (
-                <li key={i}>
-                  <strong>{c.target}{c.ability && ` (${c.ability})`}</strong>
-                  <span className="details">{getDetailText(c.details)}</span>
+      {Object.entries(groups).map(
+        ([type, list]) =>
+          list.length > 0 && (
+            <div key={type} className={`change-group change-group-${type}`}>
+              <h3>{titles[type]}</h3>
+              <ul>
+                {list.map((c, i) => (
+                  <li key={i}>
+                    <strong>
+                      {c.target}
+                      {c.ability && ` (${c.ability})`}
+                    </strong>
+                    <span className="details">{getDetailText(c.details)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+      )}
+    </div>
+  );
+};
+
+// --- YENİ: İSTATİSTİK BİLEŞENİ ---
+const StatsDisplay = ({ lang }) => {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const t = i18n[lang];
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await axios.get(`${API_URL}/public/stats`);
+        setStats(response.data);
+      } catch (err) {
+        setError(`${t.statsError} ${err.response?.data?.detail || err.message}`);
+      }
+      setLoading(false);
+    };
+    fetchStats();
+    const intervalId = setInterval(fetchStats, 5 * 60 * 1000);
+    return () => clearInterval(intervalId);
+  }, [t]);
+
+  if (loading) return <div className="loading stats-section">{t.statsLoading}</div>;
+  if (error) return <div className="error stats-section">❌ {error}</div>;
+  if (!stats || stats.message)
+    return <div className="loading stats-section">{stats?.message || t.noStats}</div>;
+
+  const sortedGameStats = stats.requests_by_game
+    ? Object.entries(stats.requests_by_game).sort(([, a], [, b]) => b - a)
+    : [];
+
+  return (
+    <div className="stats-section">
+      <h2>{t.statistics}</h2>
+      <ul>
+        <li>
+          <strong>{t.totalRequests}</strong> {stats.total_requests_analyzed || 0}
+        </li>
+        <li>
+          <strong>{t.totalErrors}</strong> {stats.total_errors || 0}
+        </li>
+        <li>
+          <strong>{t.mostPopular}</strong> {stats.most_popular_game || "N/A"}
+        </li>
+        {sortedGameStats.length > 0 && (
+          <li>
+            <strong>{t.requestsByGame}</strong>
+            <ul className="game-stats-list" style={{ marginTop: "0.5rem" }}>
+              {sortedGameStats.map(([game, count]) => (
+                <li key={game}>
+                  <span>{game}:</span> <span>{count}</span>
                 </li>
               ))}
             </ul>
-          </div>
-        )
-      ))}
+          </li>
+        )}
+      </ul>
     </div>
   );
 };
 
 // --- ANA APP ---
-const API_URL = "https://game-patch-api.onrender.com";
-const SUPPORTED_GAMES = ["Valorant", "Roblox", "Minecraft", "League of Legends", "Counter-Strike 2", "Fortnite"];
+const SUPPORTED_GAMES = [
+  "Valorant",
+  "Roblox",
+  "Minecraft",
+  "League of Legends",
+  "Counter-Strike 2",
+  "Fortnite",
+];
 
 function App() {
   const [mode, setMode] = useState("latest");
@@ -217,14 +365,19 @@ function App() {
       const date = new Date(isoString);
       const locale = lang === "tr" ? "tr-TR" : "en-US";
       return date.toLocaleString(locale, {
-        year: "numeric", month: "2-digit", day: "2-digit",
-        hour: "2-digit", minute: "2-digit", second: "2-digit"
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
       });
     } catch {
       return isoString;
     }
   };
 
+  // --- PATCH VERİLERİ YÜKLEME ---
   useEffect(() => {
     setPatchData(null);
     setError(null);
@@ -234,22 +387,33 @@ function App() {
       const load = async () => {
         setLoading(true);
         try {
-          const res = await axios.get(`${API_URL}/public/patches`, { params: { game: selectedGame } });
+          const res = await axios.get(`${API_URL}/public/patches`, {
+            params: { game: selectedGame },
+          });
           setPatchData(res.data);
         } catch (err) {
-          setError(`${t.errorLoadingLatest} ${err.response?.data?.detail || err.message}`);
+          setError(
+            `${t.errorLoadingLatest} ${
+              err.response?.data?.detail || err.message
+            }`
+          );
         }
         setLoading(false);
       };
       load();
     } else {
+      // mode === "archive"
       const load = async () => {
         setLoadingHistory(true);
         try {
-          const res = await axios.get(`${API_URL}/public/patches/history`, { params: { game: selectedGame } });
+          const res = await axios.get(`${API_URL}/public/patches/history`, {
+            params: { game: selectedGame },
+          });
           setArchiveList(res.data.archives || []);
         } catch (err) {
-          setError(`${t.errorLoadingList} ${err.response?.data?.detail || err.message}`);
+          setError(
+            `${t.errorLoadingList} ${err.response?.data?.detail || err.message}`
+          );
         }
         setLoadingHistory(false);
       };
@@ -257,23 +421,94 @@ function App() {
     }
   }, [selectedGame, mode, t]);
 
+  // --- ARŞİV DETAY VERİSİ YÜKLEME ---
   useEffect(() => {
-    if (selectedArchiveKey && mode === "history") {
+    // DÜZELTME: 'mode === "history"' yerine 'mode === "archive"' kullanılıyor
+    if (selectedArchiveKey && mode === "archive") {
       const load = async () => {
         setLoading(true);
         setError(null);
         setPatchData(null);
         try {
-          const res = await axios.get(`${API_URL}/public/patches/archive`, { params: { key: selectedArchiveKey } });
+          const res = await axios.get(`${API_URL}/public/patches/archive`, {
+            params: { key: selectedArchiveKey },
+          });
+          // --- EKSİK KISIM EKLENDİ ---
           setPatchData(res.data);
         } catch (err) {
-          setError(`${t.errorLoadingArchive} ${err.response?.data?.detail || err.message}`);
+          setError(
+            `${t.errorLoadingArchive} ${
+              err.response?.data?.detail || err.message
+            }`
+          );
         }
         setLoading(false);
       };
       load();
     }
   }, [selectedArchiveKey, mode, t]);
+
+  // --- YENİ: SSE Bağlantısı için useEffect ---
+  useEffect(() => {
+    console.log("Setting up EventSource...");
+    const eventSource = new EventSource(`${API_URL}/events`);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const eventData = JSON.parse(event.data);
+        console.log("SSE Event Received:", eventData);
+
+        const normalizedSelectedGame = selectedGame
+          .toLowerCase()
+          .replace(" ", "_")
+          .replace("-", "_")
+          .replace(".", "");
+
+        if (
+          eventData.type === "new_patch" &&
+          eventData.game === normalizedSelectedGame &&
+          mode === "latest"
+        ) {
+          console.log(
+            `New patch detected for ${selectedGame}, refreshing latest data...`
+          );
+
+          // Veriyi doğrudan yeniden yükle
+          const loadLatestData = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+              const res = await axios.get(`${API_URL}/public/patches`, {
+                params: { game: selectedGame },
+              });
+              setPatchData(res.data);
+              console.log("Latest data refreshed via SSE trigger.");
+            } catch (err) {
+              setError(
+                `${t.errorLoadingLatest} ${
+                  err.response?.data?.detail || err.message
+                }`
+              );
+            }
+            setLoading(false);
+          };
+          loadLatestData();
+        }
+      } catch (e) {
+        console.error("Error parsing SSE event data:", e);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error("EventSource failed:", error);
+      eventSource.close();
+    };
+
+    return () => {
+      console.log("Closing EventSource.");
+      eventSource.close();
+    };
+  }, [selectedGame, mode, t]);
 
   return (
     <>
@@ -288,8 +523,12 @@ function App() {
           <section>
             <h2>{t.supportedGames}</h2>
             <div className="buttons">
-              {SUPPORTED_GAMES.map(game => (
-                <button key={game} className={selectedGame === game ? "active" : ""} onClick={() => setSelectedGame(game)}>
+              {SUPPORTED_GAMES.map((game) => (
+                <button
+                  key={game}
+                  className={selectedGame === game ? "active" : ""}
+                  onClick={() => setSelectedGame(game)}
+                >
                   {game}
                 </button>
               ))}
@@ -299,29 +538,50 @@ function App() {
           <section>
             <h2>{t.dataView}</h2>
             <div className="buttons">
-              <button className={mode === "latest" ? "active" : ""} onClick={() => setMode("latest")}>
+              <button
+                className={mode === "latest" ? "active" : ""}
+                onClick={() => setMode("latest")}
+              >
                 {t.latestPatch}
               </button>
-              <button className={mode === "history" ? "active" : ""} onClick={() => setMode("history")}>
+              <button
+                className={mode === "archive" ? "active" : ""}
+                onClick={() => setMode("archive")}
+              >
                 {t.patchArchive}
               </button>
-            </div>
-
-            <div style={{ marginTop: "1.5rem" }}>
-              <h2>{t.summaryLang}</h2>
-              <div className="buttons">
-                <button className={lang === "tr" ? "active" : ""} onClick={() => setLang("tr")}>🇹🇷 Türkçe</button>
-                <button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>🇬🇧 English</button>
-              </div>
             </div>
           </section>
 
           <section>
-            <h2>{mode === "latest" ? t.latestDataFor : t.archiveDataFor} {selectedGame}</h2>
+            <h2>{t.summaryLang}</h2>
+            <div className="buttons">
+              <button
+                className={lang === "en" ? "active" : ""}
+                onClick={() => setLang("en")}
+              >
+                English
+              </button>
+              <button
+                className={lang === "tr" ? "active" : ""}
+                onClick={() => setLang("tr")}
+              >
+                Türkçe
+              </button>
+            </div>
+          </section>
 
-            {mode === "history" && (
+          <section>
+            <h2>
+              {mode === "latest" ? t.latestDataFor : t.archiveDataFor}{" "}
+              {selectedGame}
+            </h2>
+
+            {mode === "archive" && (
               <div className="history-controls">
-                {loadingHistory && <div className="loading">{t.archiveListLoading}</div>}
+                {loadingHistory && (
+                  <div className="loading">{t.archiveListLoading}</div>
+                )}
                 {!loadingHistory && archiveList.length > 0 && (
                   <select
                     className="history-select"
@@ -329,16 +589,19 @@ function App() {
                     onChange={(e) => setSelectedArchiveKey(e.target.value)}
                   >
                     <option value="">{t.archiveSelectPrompt}</option>
-                    {/* GÜNCELLEME: index.json formatı */}
                     {archiveList.map((archive) => (
                       <option key={archive.key} value={archive.key}>
-                        {formatTimestamp(archive.date)} - {archive.impact_label || "?"} ({archive.patch_version || "v?"})
+                        {formatTimestamp(archive.date)} -{" "}
+                        {archive.impact_label || "Bilgi Yok"} (
+                        {archive.patch_version || "v?"})
                       </option>
                     ))}
                   </select>
                 )}
                 {!loadingHistory && archiveList.length === 0 && !error && (
-                  <div className="loading">{t.archiveNotFound}</div>
+                  <p>
+                    <i>{t.archiveNotFound}</i>
+                  </p>
                 )}
               </div>
             )}
@@ -346,21 +609,34 @@ function App() {
             {loading && <div className="loading">{t.patchLoading}</div>}
             {error && <div className="error">❌ {error}</div>}
 
-            {!loading && patchData && (
+            {patchData && (
               <>
-                <ImpactDisplay score={patchData.impact_score} label={patchData.impact_label} lang={lang} />
-                <PatchNotesDisplay changes={patchData.changes} lang={lang} />
-                <h3 style={{ marginTop: "2rem" }}>{t.rawJson}</h3>
+                <ImpactDisplay
+                  score={patchData.impact_score}
+                  label={patchData.impact_label}
+                  lang={lang}
+                />
+                <PatchNotesDisplay
+                  changes={patchData.changes}
+                  lang={lang}
+                />
+
+                <h3>{t.rawJson}</h3>
                 <div className="json-output">
-                  <pre><code>{JSON.stringify(patchData, null, 2)}</code></pre>
+                  <pre>{JSON.stringify(patchData, null, 2)}</pre>
                 </div>
               </>
             )}
+          </section>
+
+          {/* --- İSTATİSTİK BÖLÜMÜ --- */}
+          <section>
+            <StatsDisplay lang={lang} />
           </section>
         </main>
       </div>
     </>
   );
-}
+} // <-- EKSİK OLAN PARANTEZ BURADA
 
 export default App;
