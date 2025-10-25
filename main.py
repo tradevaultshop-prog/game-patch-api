@@ -1,13 +1,13 @@
 import os
 import json
 import boto3
-from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi import FastAPI, HTTPException, Header, Depends, Query
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from datetime import datetime
-from functools import lru_cache, wraps
+from functools import lru_cache
 from typing import Optional
-from fastapi.middleware.cors import CORSMiddleware # <-- YENİ EKLENDİ
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
@@ -31,29 +31,22 @@ async def verify_key(x_api_key: Optional[str] = Header(None)):
 
 app = FastAPI()
 
-# --- YENİ EKLENDİ: CORS Middleware ---
-# Bu, başka domain'lerden (React uygulamanızdan) gelen isteklere izin verir.
-# "simplest" çözüm için origins="*" (herkese izin ver) kullanıyoruz.
+# --- CORS Middleware ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Daha güvenli bir dünyada buraya ["https-gpnai-dashboard.onrender.com"] yazardık.
+    allow_origins=["*"], # Dashboard'unuzun RENDER_EXTERNAL_URL'si ile değiştirilebilir
     allow_credentials=True,
-    allow_methods=["*"], # Sadece GET'e izin vermek daha iyi olurdu: ["GET"]
+    allow_methods=["*"],
     allow_headers=["*"],
 )
-# ------------------------------------
-
-@app.get("/")
-def root():
-    return {"message": "Game Patch Notes Intelligence API", "docs": "/docs"}
-
-@app.get("/health")
-def health_check():
-    return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
 
 @lru_cache(maxsize=10) 
 def fetch_from_s3(filename: str):
-    # logging.info(f"CACHE MISS: S3'ten çekiliyor: {filename}") # Loglamayı açabilirsiniz
+    """
+    Belirtilen dosyayı S3'ten çeker ve cache'ler.
+    Bu fonksiyon hem '_latest.json' hem de arşivlenmiş dosyalar (örn: valorant/...) için kullanılır.
+    """
+    # logging.info(f"CACHE MISS: S3'ten çekiliyor: {filename}")
     try:
         response = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=filename)
         content = response['Body'].read()
@@ -61,12 +54,19 @@ def fetch_from_s3(filename: str):
     except s3_client.exceptions.NoSuchKey:
         return None 
     except Exception as e:
-        # logging.error(f"S3 Okuma Hatası (fetch_from_s3): {e}") # Loglamayı açabilirsiniz
+        # logging.error(f"S3 Okuma Hatası (fetch_from_s3): {e}")
         raise HTTPException(status_code=500, detail=f"S3 Okuma Hatası: {e}")
 
-# --- YENİ EKLENDİ: Public Patches Endpoint'i ---
-# Bu, /patches'in BİREBİR AYNISI ama "dependencies=[Depends(verify_key)]" kısmı yok.
-# Dashboard'umuz bu endpoint'i kullanacak.
+# --- Temel Endpoint'ler ---
+@app.get("/")
+def root():
+    return {"message": "Game Patch Notes Intelligence API (v4.1 w/Archive)", "docs": "/docs"}
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
+
+# --- Public Endpoint'ler (Dashboard için) ---
 @app.get("/public/patches") 
 def get_public_patches(game: str = None):
     if game is None:
@@ -81,10 +81,61 @@ def get_public_patches(game: str = None):
         return JSONResponse(content=data)
     else:
         raise HTTPException(status_code=404, detail=f"'{game}' için yama notu bulunamadı.")
-# ------------------------------------------------
 
-# --- MEVCUT /patches ENDPOINT'İNİZ (DOKUNULMAMIŞ) ---
-# Bu, API müşterileriniz için anahtarla korunmaya devam ediyor.
+# --- YENİ EKLENDİ: Arşiv Listesi Endpoint'i ---
+@app.get("/public/patches/history")
+def get_public_patch_history(game: str = None):
+    """
+    Bir oyun için arşivlenmiş tüm yama notlarının listesini döner.
+    Dashboard'daki "Tarih Seçici" bu endpoint'i besler.
+    """
+    if game is None:
+        raise HTTPException(status_code=400, detail="Lütfen bir oyun adı belirtin (örn: /public/patches/history?game=Valorant).")
+
+    safe_name = game.lower().replace(" ", "_").replace("-", "_").replace(".", "")
+    prefix = f"{safe_name}/" # S3'teki 'klasörü' (prefix) belirtir
+    
+    archives = []
+    try:
+        # S3'teki o 'klasör' içindeki tüm nesneleri listele
+        paginator = s3_client.get_paginator('list_objects_v2')
+        pages = paginator.paginate(Bucket=S3_BUCKET_NAME, Prefix=prefix)
+
+        for page in pages:
+            if "Contents" in page:
+                for obj in page["Contents"]:
+                    archives.append({
+                        "key": obj["Key"], # Dosyanın tam yolu (örn: valorant/20251025_173045.json)
+                        "date": obj["LastModified"].isoformat(),
+                        "size_kb": round(obj["Size"] / 1024, 2)
+                    })
+        
+        # Listeyi en yeniden en eskiye doğru sırala
+        archives.sort(key=lambda x: x["date"], reverse=True)
+        return {"game": game, "archive_count": len(archives), "archives": archives}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"S3 Arşiv Listeleme Hatası: {e}")
+
+# --- YENİ EKLENDİ: Arşiv Detay Endpoint'i ---
+@app.get("/public/patches/archive")
+def get_public_archive_detail(key: str = Query(..., description="S3'ten çekilecek dosyanın tam anahtarı (key)")):
+    """
+    'key' parametresiyle belirtilen tek bir arşivlenmiş JSON dosyasının içeriğini döner.
+    Bu endpoint, mevcut 'fetch_from_s3' cache mekanizmasını [cite: 75-76] yeniden kullanır.
+    """
+    if not key or "/" not in key:
+        raise HTTPException(status_code=400, detail="Geçerli bir S3 'key' gereklidir (örn: valorant/20251025_173045.json).")
+
+    data = fetch_from_s3(filename=key) # Cache'li fonksiyonu yeniden kullan
+    
+    if data:
+        return JSONResponse(content=data)
+    else:
+        # fetch_from_s3 'None' dönerse (NoSuchKey)
+        raise HTTPException(status_code=4404, detail=f"'{key}' anahtarlı arşivlenmiş yama notu bulunamadı.")
+
+# --- MEVCUT /patches ENDPOINT'İNİZ (Anahtarla Korunan) ---
 @app.get("/patches", dependencies=[Depends(verify_key)])
 def get_patches(game: str = None):
     if game is None:
