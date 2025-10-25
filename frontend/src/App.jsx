@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 
 // --- STİLLER DOĞRUDAN BURADA ---
+// (Bir önceki adımdaki hatayı önlemek için stil dosyasını içe gömdük)
 const GlobalStyles = () => (
   <style>{`
     :root {
@@ -52,14 +53,6 @@ const GlobalStyles = () => (
     }
     .loading { background-color: #333; }
     .error { background-color: #4b2525; color: #ffbaba; }
-    .json-output {
-      background-color: #1a1a1a;
-      border-radius: 8px;
-      padding: 1rem;
-      overflow-x: auto;
-      margin-top: 1rem;
-    }
-    pre { margin: 0; }
     .history-controls { margin-bottom: 1rem; }
     .history-select {
       width: 100%;
@@ -101,8 +94,6 @@ const GlobalStyles = () => (
     .impact-büyük {
       background-color: #4b2525; border-color: #a83f3f; color: #ffbaba;
     }
-
-    /* --- YENİ: Formatlı Değişiklik Listesi Stilleri --- */
     .patch-changes-list {
       margin-top: 1.5rem;
       padding: 1rem;
@@ -135,6 +126,14 @@ const GlobalStyles = () => (
     .change-group-new h3 { color: #88d8f1; }
     .change-group-fix h3 { color: #f1f188; }
     .change-group-other h3 { color: #ccc; }
+    .json-output {
+      background-color: #1a1a1a;
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-x: auto;
+      margin-top: 1rem;
+    }
+    pre { margin: 0; }
   `}</style>
 );
 
@@ -152,10 +151,6 @@ const ImpactDisplay = ({ score, label }) => {
   );
 }
 
-/**
- * YENİ: JSON'daki "changes" dizisini alan ve seçilen dile göre [cite: 1.1] 
- * güzel bir liste olarak gösteren bileşen.
- */
 const PatchNotesDisplay = ({ changes, lang }) => {
   if (!changes || changes.length === 0) {
     return (
@@ -165,7 +160,6 @@ const PatchNotesDisplay = ({ changes, lang }) => {
     );
   }
 
-  // Değişiklikleri tipe göre grupla (Telegram'daki gibi)
   const groups = { buff: [], nerf: [], new: [], fix: [], other: [] };
   changes.forEach(change => {
     const type = change.type?.toLowerCase() || 'other';
@@ -173,15 +167,13 @@ const PatchNotesDisplay = ({ changes, lang }) => {
     else groups.other.push(change);
   });
 
-  // Bir dil objesinden (veya eski string'den) metni güvenle çeker
   const getDetailText = (details) => {
     if (typeof details === 'object' && details !== null) {
-      return details[lang] || details.tr || details.en || "Detay yok"; // İstenen dili, sonra TR, sonra EN dene
+      return details[lang] || details.tr || details.en || "Detay yok";
     }
-    return details || "Detay yok"; // Eski veriler için (string ise)
+    return details || "Detay yok";
   }
 
-  // Grup başlıkları
   const groupTitles = {
     buff: "🟢 Güçlendirmeler (Buffs)",
     nerf: "🔴 Zayıflatmalar (Nerfs)",
@@ -193,7 +185,7 @@ const PatchNotesDisplay = ({ changes, lang }) => {
   return (
     <div className="patch-changes-list">
       {Object.entries(groups).map(([type, changesList]) => {
-        if (changesList.length === 0) return null; // Boş grubu gösterme
+        if (changesList.length === 0) return null;
         return (
           <div key={type} className={`change-group change-group-${type}`}>
             <h3>{groupTitles[type]}</h3>
@@ -217,7 +209,6 @@ const PatchNotesDisplay = ({ changes, lang }) => {
   );
 }
 
-
 // --- ANA UYGULAMA BİLEŞENİ ---
 
 const API_URL = "https://game-patch-api.onrender.com";
@@ -234,9 +225,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [error, setError] = useState(null);
-  
-  // YENİ: Dil state'i [cite: 1.1]
-  const [lang, setLang] = useState('tr'); // Varsayılan dil Türkçe
+  const [lang, setLang] = useState('tr');
 
   const formatTimestamp = (isoString) => {
     try {
@@ -248,7 +237,6 @@ function App() {
     } catch (e) { return isoString; }
   }
 
-  // HOOK 1 & 2: Oyun veya Mod değiştiğinde (Değişiklik yok)
   useEffect(() => {
     setPatchData(null);
     setError(null);
@@ -281,7 +269,6 @@ function App() {
     }
   }, [selectedGame, mode]);
 
-  // HOOK 3: Arşiv tarihi seçildiğinde (Değişiklik yok)
   useEffect(() => {
     if (selectedArchiveKey && mode === 'history') {
       const fetchArchivedPatch = async () => {
@@ -298,9 +285,8 @@ function App() {
       };
       fetchArchivedPatch();
     }
-  }, [selectedArchiveKey]);
+  }, [selectedArchiveKey, mode]); // 'mode'u bağımlılığa eklemek iyi bir pratiktir
 
-  // --- JSX (Görsel Arayüz) ---
   return (
     <>
       <GlobalStyles />
@@ -311,7 +297,6 @@ function App() {
         </header>
 
         <main>
-          {/* BÖLÜM 1: Oyunlar */}
           <section className="games-list">
             <h2>Desteklenen Oyunlar</h2>
             <div className="buttons">
@@ -327,7 +312,6 @@ function App() {
             </div>
           </section>
 
-          {/* BÖLÜM 2: Dil ve Mod Seçiciler */}
           <section className="controls">
             <div className="mode-selector">
               <h2>Veri Görünümü</h2>
@@ -347,7 +331,6 @@ function App() {
               </div>
             </div>
             
-            {/* YENİ: Dil Seçici [cite: 1.1] */}
             <div className="language-selector" style={{marginTop: '1.5rem'}}>
               <h2>Özet Dili</h2>
               <div className="buttons">
@@ -367,14 +350,12 @@ function App() {
             </div>
           </section>
 
-          {/* BÖLÜM 3: Yama Detayları */}
           <section className="patch-details">
             <h2>
               {selectedGame} için 
               {mode === 'latest' ? ' Son Veri' : ' Geçmiş Veri'}
             </h2>
             
-            {/* Tarih Seçici */}
             {mode === 'history' && (
               <div className="history-controls">
                 {loadingHistory && <div className="loading">🔄 Arşiv listesi yükleniyor...</div>}
@@ -382,7 +363,10 @@ function App() {
                   <select 
                     className="history-select"
                     value={selectedArchiveKey}
-                    onChange={(e) => setSelectedArchiveKey(e.taget.value)}
+                    // --- DÜZELTME BURADA ---
+                    // 'e.taget.value' -> 'e.target.value' olarak düzeltildi
+                    onChange={(e) => setSelectedArchiveKey(e.target.value)}
+                    // ---------------------
                   >
                     <option value="">Lütfen bir arşiv tarihi seçin...</option>
                     {archiveList.map((archive) => (
@@ -398,26 +382,21 @@ function App() {
               </div>
             )}
 
-            {/* Ana Veri Gösterim Alanı */}
             {loading && <div className="loading">🔄 Yama verisi yükleniyor...</div>}
             {error && <div className="error">❌ {error}</div>}
 
-            {/* Veri yüklendiğinde ve hata olmadığında */}
             {!loading && patchData && (
               <>
-                {/* 1. Etki Skoru Göstergesi */}
                 <ImpactDisplay 
                   score={patchData.impact_score} 
                   label={patchData.impact_label} 
                 />
                 
-                {/* 2. YENİ: Formatlı Değişiklik Listesi */}
                 <PatchNotesDisplay 
                   changes={patchData.changes} 
                   lang={lang} 
                 />
 
-                {/* 3. Ham JSON Çıktısı (Teknik kullanıcılar için) */}
                 <h3 style={{marginTop: '2rem'}}>Raw JSON Output:</h3>
                 <div className="json-output">
                   <pre>
