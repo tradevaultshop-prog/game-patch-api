@@ -1,4 +1,5 @@
 services:
+  # 1. Servis: FastAPI API Sunucusu
   - type: web
     name: game-patch-api
     env: python
@@ -20,6 +21,20 @@ services:
       - key: SLACK_WEBHOOK_URL
         sync: false
 
+  # 2. Servis: React Frontend Arayüzü (Faz 4)
+  - type: web
+    name: gpnai-dashboard
+    env: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    publishDir: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    # Not: Dashboard'un API anahtarlarına ihtiyacı yoktur.
+
+  # 3. Servis: Cron Job (Veri Çekme)
   - type: cron
     name: patch-scraper
     env: python
@@ -39,12 +54,13 @@ services:
         sync: false
       - key: SLACK_WEBHOOK_URL
         sync: false
-      # --- YENİ EKLENDİ ---
+      # --- YENİ TELEGRAM DEĞİŞKENLERİ ---
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: TELEGRAM_CHAT_ID
         sync: false
 
+  # 4. Servis: Cron Job (Sağlık Kontrolü)
   - type: cron
     name: patch-health-check
     env: python
@@ -54,12 +70,8 @@ services:
     envVars:
       - key: SLACK_WEBHOOK_URL
         sync: false
-      # --- YENİ EKLENDİ ---
+      # --- YENİ TELEGRAM DEĞİŞKENLERİ ---
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: TELEGRAM_CHAT_ID
         sync: false
-
-# Not: Faz 4 (Frontend) render.yaml dosyanızda varsa, bu değişiklikleri 
-# o dosyadaki ilgili servislere ekleyin. 
-# Bu kod, sizin yüklediğiniz render.yaml'a göredir.
