@@ -240,29 +240,54 @@ def save_json_to_s3_and_archive(data, base_name):
         logging.error(f"❌ S3'e yazma hatası ({base_name}): {e}")
         send_alert(f"❌ S3'e yazma hatası ({base_name}): {e}")
 
-# --- Veri Çekme ---
+# --- Veri Çekme (GÜNCELLENDİ) ---
 def fetch_game_data(game_config, session):
-    game_name = game_config['game']
-    safe_name = game_config['safe_name']
-    fetch_function_name = game_config['fetch_function']
+    game_name = game_config.get('game')
+    safe_name = game_config.get('safe_name')
+    
+    # --- YENİ Strateji Tabanlı Yönlendirme ---
+    strategy = game_config.get('strategy')
+    fetch_function = None
+    
+    if strategy == 'html':
+        fetch_function = getattr(scrapers, 'fetch_html_generic', None)
+    elif strategy == 'rss':
+        fetch_function = getattr(scrapers, 'fetch_rss_generic', None)
+    else:
+        # Eski fonksiyon adlarını destekleyebilirsiniz (opsiyonel)
+        fetch_function_name = game_config.get('fetch_function')
+        if fetch_function_name and hasattr(scrapers, fetch_function_name):
+            fetch_function = getattr(scrapers, fetch_function_name)
+        else:
+            logging.error(f"THREAD ❌: {game_name} için 'strategy' (html/rss) tanımlanmamış ve fetch_function bulunamadı. Atlanıyor.")
+            return game_name, None, game_config, None
+    # --- Yönlendirme Sonu ---
+
     try:
-        logging.info(f"THREAD 🔍: {game_name} için veri çekiliyor...")
-        fetch_function = getattr(scrapers, fetch_function_name)
-        raw_data = fetch_function(session)
+        logging.info(f"THREAD 🔍: {game_name} için veri çekiliyor (Strateji: {strategy})...")
+        
+        # Genel fonksiyona 'session' ve tüm 'config' objesini gönderiyoruz
+        raw_data = fetch_function(session, game_config) 
+        
         if not raw_data:
             logging.warning(f"THREAD ⚠️: {game_name} için veri bulunamadı.")
             return game_name, None, game_config, None
+            
         new_hash = hashlib.sha256(raw_data.encode('utf-8')).hexdigest()
         old_hash = get_hash_from_s3(safe_name)
+        
         if new_hash == old_hash:
             logging.info(f"THREAD ⏩: {game_name} verisi değişmemiş. Gemini analizi atlanıyor.")
             return game_name, raw_data, game_config, "SKIPPED"
+            
+        # Değişiklik var, yeni hash ile devam et
         return game_name, raw_data, game_config, new_hash
+        
     except Exception as e:
-        logging.error(f"THREAD ❌: {game_name} veri çekme hatası: {e}")
+        logging.error(f"THREAD ❌: {game_name} veri çekme hatası (Strateji: {strategy}): {e}", exc_info=True)
         return game_name, None, game_config, None
 
-# --- Sağlık Kontrolü ---
+# --- Sağlık Kontrolü (GÜNCELLENDİ) ---
 def run_health_check():
     logging.info("🩺 Proaktif Sağlık Kontrolü başlıyor...")
     try:
@@ -271,24 +296,43 @@ def run_health_check():
     except FileNotFoundError:
         send_alert("CRITICAL (Health Check): `sources.yaml` dosyası bulunamadı!")
         return
-    broken_selectors = []
+        
+    broken_scrapers = []
     session = create_session()
+    
     for config in games_config:
-        game_name = config['game']
-        fetch_function_name = config['fetch_function']
+        game_name = config.get('game')
+        strategy = config.get('strategy')
+        fetch_function = None
+        
+        if strategy == 'html':
+            fetch_function = getattr(scrapers, 'fetch_html_generic', None)
+        elif strategy == 'rss':
+            fetch_function = getattr(scrapers, 'fetch_rss_generic', None)
+        else:
+            # Fallback: eski fetch_function adı
+            fetch_function_name = config.get('fetch_function')
+            if fetch_function_name and hasattr(scrapers, fetch_function_name):
+                fetch_function = getattr(scrapers, fetch_function_name)
+            else:
+                logging.warning(f"HEALTH ⚠️: {game_name} için 'strategy' yok ve fetch_function tanımlı değil. Atlanıyor.")
+                continue
+            
         try:
-            fetch_function = getattr(scrapers, fetch_function_name)
-            data = fetch_function(session)
+            # Genel fonksiyona 'session' ve 'config' gönder
+            data = fetch_function(session, config)
             if data is None:
-                broken_selectors.append(game_name)
+                broken_scrapers.append(f"{game_name} (Strateji: {strategy} - Veri 'None' döndü)")
         except Exception as e:
-            logging.error(f"HEALTH ❌: {game_name} scraper'ı çöktü: {e}")
-            broken_selectors.append(f"{game_name} (Çöktü)")
+            logging.error(f"HEALTH ❌: {game_name} (Strateji: {strategy}) scraper'ı çöktü: {e}")
+            broken_scrapers.append(f"{game_name} (Strateji: {strategy} - Çöktü)")
+            
     session.close()
-    if broken_selectors:
-        send_alert("❌ PROAKTİF UYARI: Şu scraper'lar bozulmuş olabilir:\n- " + "\n- ".join(broken_selectors))
+    
+    if broken_scrapers:
+        send_alert("❌ PROAKTİF UYARI: Şu scraper'lar bozulmuş olabilir:\n- " + "\n- ".join(broken_scrapers))
     else:
-        logging.info("✅ Sağlık Kontrolü tamamlandı. Tüm scraper'lar çalışıyor.")
+        logging.info("✅ Sağlık Kontrolü tamamlandı. Tüm (generic) scraper'lar çalışıyor.")
 
 # --- Ana Scraper ---
 def run_scrape():
@@ -307,7 +351,7 @@ def run_scrape():
         for i, (game_name, raw_data, config, hash_or_flag) in enumerate(fetched_data):
             if hash_or_flag == "SKIPPED":
                 continue
-            safe_name = config['safe_name']
+            safe_name = config.get('safe_name')
             if not raw_data:
                 raw_data = f"{game_name} received balance changes and new content."
                 logging.warning(f"⚠️  {game_name} için veri yok. Fallback metin kullanılıyor.")

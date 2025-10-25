@@ -1,23 +1,64 @@
+# sources.yaml (YENİ - Strateji Tabanlı)
+
 - game: "Valorant"
-  fetch_function: "fetch_valorant_patch_notes"
   safe_name: "valorant"
+  strategy: "html" # Kullanılacak kazıma stratejisi
+  url: "https://playvalorant.com/en-us/news/game-updates/" # Ana yama listesi sayfası
+  base_url: "https://playvalorant.com" # Göreceli linkleri birleştirmek için
+  selectors:
+    # 1. 'url' adresinden bu seçiciyle en son yama linkini bul
+    link: 'a[href*="/game-updates/"], a[href*="/patch-notes/"]'
+    # 2. Gidilen linkteki sayfadan bu seçiciyle içeriği çek
+    content: 'div[class*="Article-module--body"]'
+  text_limit: 4000 # AI'a göndermeden önce metni kırp
 
 - game: "Roblox"
-  fetch_function: "fetch_roblox_patch_notes"
   safe_name: "roblox"
+  strategy: "rss" # RSS stratejisi çok daha basittir
+  url: "https://create.roblox.com/docs/reference/updates.rss"
+  selectors:
+    # RSS için 'content' selector'ı, hangi etiketlerin birleştirileceğini söyler
+    content: ['title', 'description']
+  text_limit: 1000
 
 - game: "Minecraft"
-  fetch_function: "fetch_minecraft_patch_notes"
   safe_name: "minecraft"
+  strategy: "html"
+  url: "https://www.minecraft.net/en-us/articles"
+  base_url: "https://www.minecraft.net"
+  selectors:
+    link: 'a[href*="/articles/minecraft-java-edition-"]'
+    content: 'div.article-body'
+  text_limit: 4000
 
 - game: "League of Legends"
-  fetch_function: "fetch_league_patch_notes"
   safe_name: "league_of_legends"
+  strategy: "html"
+  url: "https://www.leagueoflegends.com/en-us/news/tags/patch-notes/"
+  base_url: "https://www.leagueoflegends.com"
+  selectors:
+    link: 'a[href*="/en-us/news/game-updates/"]'
+    content: 'div.article-content'
+  text_limit: 4000
 
 - game: "Counter-Strike 2"
-  fetch_function: "fetch_cs2_patch_notes"
   safe_name: "counter_strike_2"
+  strategy: "html"
+  url: "https://blog.counter-strike.net/index.php/category/updates/"
+  # Not: Bu oyun için 'link' seçicisi yok.
+  # Bu, 'url' adresindeki sayfanın doğrudan 'content'i barındırdığı anlamına gelir.
+  selectors:
+    content: 'div.post' # Sayfadaki ilk 'div.post' içeriğini alır
+  text_limit: 3000
 
 - game: "Fortnite"
-  fetch_function: "fetch_fortnite_patch_notes"
   safe_name: "fortnite"
+  strategy: "html"
+  url: "https://www.epicgames.com/fortnite/en-US/news"
+  base_url: "https://www.epicgames.com" # 'epicgames.com' dışı linkler için (örn: fn.gg)
+  selectors:
+    # Birden fazla koşulu virgülle ayırarak deneriz
+    link: 'a[href*="/patch-notes/"], a[href*="/whats-new-"], a[href*="battle-royale-v"]'
+    # Birden fazla olası içerik alanını da deneriz
+    content: 'div[class*="cms-content"], main[role="main"]'
+  text_limit: 4000
