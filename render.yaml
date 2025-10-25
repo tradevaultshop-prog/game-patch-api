@@ -9,7 +9,7 @@ services:
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: GEMINI_API_KEY
-        sync: false 
+        sync: false
       - key: S3_BUCKET_NAME
         sync: false
       - key: S3_ENDPOINT_URL
@@ -18,9 +18,9 @@ services:
         sync: false
       - key: S3_SECRET_ACCESS_KEY
         sync: false
-      - key: API_KEY # Faz 1'den eklendi
+      - key: API_KEY
         sync: false
-      - key: SLACK_WEBHOOK_URL # Faz 1'den eklendi
+      - key: SLACK_WEBHOOK_URL
         sync: false
 
   # 2. ZAMANLANMIŞ GÖREV (ANA VERİ ÇEKME)
@@ -28,8 +28,7 @@ services:
     name: patch-scraper
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python scrape.py --run=scrape # <-- Mod eklendi
-    # Her 4 saatte bir çalışır
+    startCommand: python scrape.py --run=scrape
     schedule: "0 */4 * * *"
     envVars:
       - key: GEMINI_API_KEY
@@ -42,33 +41,27 @@ services:
         sync: false
       - key: S3_SECRET_ACCESS_KEY
         sync: false
-      - key: SLACK_WEBHOOK_URL # Faz 1'den eklendi
+      - key: SLACK_WEBHOOK_URL
         sync: false
 
-  # 3. YENİ EKLENDİ: ZAMANLANMIŞ GÖREV (SAĞLIK KONTROLÜ - Öneri 1.1)
+  # 3. ZAMANLANMIŞ GÖREV (SAĞLIK KONTROLÜ)
   - type: cron
     name: patch-health-check
     env: python
     buildCommand: pip install -r requirements.txt
-    # Yeni 'health' modunu çalıştırır
     startCommand: python scrape.py --run=health
-    # Günde bir kez, sabah 9:00 UTC'de çalışır
     schedule: "0 9 * * *"
     envVars:
-      # Bu servis sadece uyarı göndermek için Slack anahtarına ihtiyaç duyar
       - key: SLACK_WEBHOOK_URL
         sync: false
 
-  # 4. YENİ EKLENDİ: REACT DASHBOARD (STATIC SITE)
+  # 4. REACT DASHBOARD (STATIC SITE)
   - type: web
-    name: gpnai-dashboard # (Bu, gpnai-dashboard.onrender.com adresini oluşturacak)
+    name: gpnai-dashboard
     env: static
-    # Render'a hangi klasörde çalışacağını söylüyoruz
     rootDir: frontend
     buildCommand: npm install && npm run build
-    # Vite'in build çıktısı 'dist' klasörüdür
     publishDir: dist
-    # Geriye kalan tüm istekleri index.html'e yönlendir (React Router için)
     routes:
       - type: rewrite
         source: /*
