@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 from functools import lru_cache, wraps
 from typing import Optional
+from fastapi.middleware.cors import CORSMiddleware # <-- YENİ EKLENDİ
 
 load_dotenv()
 
@@ -20,51 +21,70 @@ s3_client = boto3.client(
 )
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
 
-# --- YENİ EKLENDİ: API Anahtarı Güvenliği (Öneri 3.2) ---
 API_KEY = os.getenv("API_KEY")
 
 async def verify_key(x_api_key: Optional[str] = Header(None)):
     if not API_KEY:
-        # API_KEY ayarlanmamışsa, güvenliği devredışı bırak (geliştirme için)
         return
     if x_api_key != API_KEY:
         raise HTTPException(status_code=403, detail="Geçersiz API Anahtarı")
-# ----------------------------------------------------
 
 app = FastAPI()
+
+# --- YENİ EKLENDİ: CORS Middleware ---
+# Bu, başka domain'lerden (React uygulamanızdan) gelen isteklere izin verir.
+# "simplest" çözüm için origins="*" (herkese izin ver) kullanıyoruz.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Daha güvenli bir dünyada buraya ["https-gpnai-dashboard.onrender.com"] yazardık.
+    allow_credentials=True,
+    allow_methods=["*"], # Sadece GET'e izin vermek daha iyi olurdu: ["GET"]
+    allow_headers=["*"],
+)
+# ------------------------------------
 
 @app.get("/")
 def root():
     return {"message": "Game Patch Notes Intelligence API", "docs": "/docs"}
 
-# --- YENİ EKLENDİ: Healthcheck Endpoint'i (Öneri 4.2) ---
 @app.get("/health")
 def health_check():
-    # Bu endpoint, harici bir monitör (UptimeRobot vb.) tarafından izlenebilir
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
-# ----------------------------------------------------
 
-# --- YENİ EKLENDİ: Akıllı Önbellekleme (Öneri 3.3) ---
-# S3'ten veri çeken fonksiyonu ayırıyoruz
-# maxsize=10 (6 oyun + birkaç popüler sorgu)
-# TTL (Time-to-Live) eklemek için 'cachetools' kullanılabilir, 
-# ancak basitlik için lru_cache ile başlıyoruz.
 @lru_cache(maxsize=10) 
 def fetch_from_s3(filename: str):
-    logging.info(f"CACHE MISS: S3'ten çekiliyor: {filename}")
+    # logging.info(f"CACHE MISS: S3'ten çekiliyor: {filename}") # Loglamayı açabilirsiniz
     try:
         response = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=filename)
         content = response['Body'].read()
         return json.loads(content)
     except s3_client.exceptions.NoSuchKey:
-        return None # Hata yönetimi get_patches içinde yapılacak
+        return None 
     except Exception as e:
-        logging.error(f"S3 Okuma Hatası (fetch_from_s3): {e}")
-        # Hata durumunda cache'lememek için istisna fırlat
+        # logging.error(f"S3 Okuma Hatası (fetch_from_s3): {e}") # Loglamayı açabilirsiniz
         raise HTTPException(status_code=500, detail=f"S3 Okuma Hatası: {e}")
-# ----------------------------------------------------
 
-# --- GÜNCELLENDİ: 'get_patches' artık Caching ve Güvenlik kullanıyor ---
+# --- YENİ EKLENDİ: Public Patches Endpoint'i ---
+# Bu, /patches'in BİREBİR AYNISI ama "dependencies=[Depends(verify_key)]" kısmı yok.
+# Dashboard'umuz bu endpoint'i kullanacak.
+@app.get("/public/patches") 
+def get_public_patches(game: str = None):
+    if game is None:
+        raise HTTPException(status_code=400, detail="Lütfen bir oyun adı belirtin (örn: /public/patches?game=Valorant).")
+
+    safe_name = game.lower().replace(" ", "_").replace("-", "_").replace(".", "")
+    filename = f"{safe_name}_latest.json"
+    
+    data = fetch_from_s3(filename)
+    
+    if data:
+        return JSONResponse(content=data)
+    else:
+        raise HTTPException(status_code=404, detail=f"'{game}' için yama notu bulunamadı.")
+# ------------------------------------------------
+
+# --- MEVCUT /patches ENDPOINT'İNİZ (DOKUNULMAMIŞ) ---
+# Bu, API müşterileriniz için anahtarla korunmaya devam ediyor.
 @app.get("/patches", dependencies=[Depends(verify_key)])
 def get_patches(game: str = None):
     if game is None:
@@ -73,12 +93,9 @@ def get_patches(game: str = None):
     safe_name = game.lower().replace(" ", "_").replace("-", "_").replace(".", "")
     filename = f"{safe_name}_latest.json"
     
-    # Önbellekli fonksiyonu çağır
     data = fetch_from_s3(filename)
     
     if data:
         return JSONResponse(content=data)
     else:
-        # fetch_from_s3 None döndürdüyse (NoSuchKey)
-        raise HTTPException(status_code=4404, detail=f"'{game}' için yama notu bulunamadı.")
-# ----------------------------------------------------------------
+        raise HTTPException(status_code=404, detail=f"'{game}' için yama notu bulunamadı.")

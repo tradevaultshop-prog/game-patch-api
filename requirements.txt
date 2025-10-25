@@ -7,3 +7,4 @@ google-genai
 lxml
 boto3
 PyYAML
+fastapi-cors

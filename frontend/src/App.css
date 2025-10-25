@@ -1,0 +1,37 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  background-color: #242424;
+  color: rgba(255, 255, 255, 0.87);
+}
+body { margin: 0; }
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+header { text-align: center; border-bottom: 1px solid #555; padding-bottom: 1rem; }
+h1 { color: #535bf2; }
+.games-list h2, .patch-details h2 { border-bottom: 1px solid #444; padding-bottom: 8px; }
+.buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 1rem; }
+.buttons button {
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-weight: 500;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+.buttons button:hover { border-color: #535bf2; }
+.buttons button.active { background-color: #535bf2; color: white; }
+.loading, .error { padding: 1rem; border-radius: 8px; margin-top: 1rem; }
+.loading { background-color: #333; }
+.error { background-color: #4b2525; color: #ffbaba; }
+.json-output {
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto; /* Yatay kaydırma */
+  margin-top: 1rem;
+}
+pre { margin: 0; }
