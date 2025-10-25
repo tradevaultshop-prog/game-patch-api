@@ -50,9 +50,8 @@ services:
       - key: SLACK_WEBHOOK_URL
         sync: false
 
-  - type: web
+  - type: static_site
     name: gpnai-dashboard
-    env: static
     rootDir: frontend
     buildCommand: npm ci && npm run build
     publishDir: dist
