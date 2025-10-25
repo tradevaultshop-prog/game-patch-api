@@ -52,7 +52,6 @@ services:
 
   - type: web
     name: gpnai-dashboard
-    env: static
     rootDir: frontend
     buildCommand: npm ci && npm run build
     publishDir: dist
