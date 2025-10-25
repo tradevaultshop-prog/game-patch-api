@@ -9,17 +9,36 @@ def fetch_valorant_patch_notes(session):
     try:
         res = session.get(url, timeout=15)
         soup = BeautifulSoup(res.text, 'html.parser')
-        links = soup.find_all("a", href=True)
-        for link in links:
-            href = link["href"]
-            if any(kw in href for kw in ["/patch-notes", "/game-updates/", "/news/updates/"]):
-                full_url = "https://playvalorant.com" + href
-                detail_res = session.get(full_url, timeout=15)
-                detail_soup = BeautifulSoup(detail_res.text, 'html.parser')
-                content_div = detail_soup.find("div", class_="news-item-content")
-                if content_div:
-                    return content_div.get_text(separator="\n", strip=True)[:3000]
-        return None
+        
+        # En son yama notu makalesine giden ilk bağlantıyı bul
+        # Genellikle "game-updates" veya "patch-notes" içeren bir href ararız
+        patch_link = soup.find("a", href=lambda h: h and ("/patch-notes/" in h or "/game-updates/" in h))
+        
+        if patch_link and patch_link["href"]:
+            full_url = "https://playvalorant.com" + patch_link["href"]
+            detail_res = session.get(full_url, timeout=15)
+            detail_soup = BeautifulSoup(detail_res.text, 'html.parser')
+
+            # --- GÜNCELLEME ---
+            # Orijinal seçici (muhtemelen bozuldu):
+            # content_div = detail_soup.find("div", class_="news-item-content")
+            
+            # YENİ, DAHA DAYANIKLI SEÇİCİ:
+            # Valorant'ın makale gövdesi için genellikle "Article-module--body" içeren
+            # dinamik bir sınıf adı kullandığını varsayıyoruz.
+            content_div = detail_soup.find("div", class_=lambda c: c and "Article-module--body" in c)
+
+            # Eğer bu da çalışmazsa, ana <article> etiketini arayabiliriz (daha semantik)
+            if not content_div:
+                content_div = detail_soup.find("article")
+            # --- GÜNCELLEME SONU ---
+
+            if content_div:
+                return content_div.get_text(separator="\n", strip=True)[:3500] # Limiti biraz artırdık
+        
+        logging.warning("Valorant: Ana sayfada yama notu bağlantısı bulunamadı.")
+        return None # Tetikleyici 'None' döndürür
+        
     except Exception as e:
         logging.warning(f"Valorant scraping hatası: {e}")
         return None
@@ -62,7 +81,7 @@ def fetch_league_patch_notes(session):
             detail = session.get(full_url, timeout=15)
             dsoup = BeautifulSoup(detail.text, 'html.parser')
             content = dsoup.find("div", class_="article-content")
-            return content.get_text(separator="\n", strip=True)[:3000] if content else "New LoL patch."
+            return content.get_text(separator="\n", strip=True)[:3500] if content else "New LoL patch."
         return "League of Legends balance changes."
     except Exception as e:
         logging.warning(f"LoL scraping hatası: {e}")
@@ -84,15 +103,29 @@ def fetch_cs2_patch_notes(session):
 
 def fetch_fortnite_patch_notes(session):
     try:
-        res = session.get("https://www.epicgames.com/fortnite/news/patch-notes", timeout=15)
+        res = session.get("https://www.epicgames.com/fortnite/en-US/news", timeout=15)
         soup = BeautifulSoup(res.text, 'html.parser')
-        first_link = soup.find("a", href=lambda x: x and "/fortnite/news/patch-notes/" in x)
-        if first_link:
-            full_url = "https://www.epicgames.com" + first_link["href"]
+        
+        # Fortnite'ın /news sayfasındaki ilgili makaleyi bul
+        # Genellikle "patch-notes" veya "whats-new" içeren bir href ararız
+        patch_link = soup.find("a", href=lambda h: h and ("/patch-notes/" in h or "/whats-new-" in h or "battle-royale-v" in h))
+
+        if patch_link and patch_link["href"]:
+            # href tam URL değilse başına ekle
+            if patch_link["href"].startswith("/"):
+                full_url = "https://www.epicgames.com" + patch_link["href"]
+            else:
+                full_url = patch_link["href"]
+                
             detail = session.get(full_url, timeout=15)
             dsoup = BeautifulSoup(detail.text, 'html.parser')
-            main = dsoup.find("main") or dsoup.find("div", class_="blog-content")
-            return main.get_text(separator="\n", strip=True)[:3000] if main else "Fortnite new season."
+            
+            # Makale gövdesini bul (genellikle 'cms-content' veya benzeri bir sınıf)
+            main = dsoup.find("div", class_=lambda c: c and "cms-content" in c)
+            if not main:
+                main = dsoup.find("main") # Fallback
+                
+            return main.get_text(separator="\n", strip=True)[:3500] if main else "Fortnite new season."
         return "Fortnite: New weapons and map changes."
     except Exception as e:
         logging.warning(f"Fortnite scraping hatası: {e}")
