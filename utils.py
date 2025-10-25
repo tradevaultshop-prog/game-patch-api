@@ -7,32 +7,30 @@ from google import genai
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-# YENİ EKLENDİ: Sistemin genel kurallarını belirleyen bir "system instruction"
-# Bu, prompt'un her zaman en üstünde yer alacak ve AI'nin rolünü tanımlayacak.
+# GÜNCELLENMİŞ SİSTEM TALİMATI (v3)
 SYSTEM_INSTRUCTION = """
 Sen bir "Game Patch Note Analyst" (Oyun Yama Notu Analisti) asistanısın.
 Görevin, sana verilen ham metni analiz etmek ve KESİNLİKLE JSON formatında bir çıktı üretmektir.
-Kuralların:
-1.  Sadece JSON döndür. Başka hiçbir açıklama, giriş veya son söz ekleme.
-2.  `target` alanı KISA olmalı (1-3 kelime). Asla tam bir cümle olmamalı.
-3.  `details` alanı bir obje olmalı ve `tr` (Türkçe) ve `en` (İngilizce) olmak üzere İKİ anahtar da içermelidir.
-4.  `details.tr` alanı ZORUNLU olarak Türkçe olmalıdır. Metin İngilizce ise onu çevir.
-5.  `details.en` alanı ZORUNLU olarak İngilizce olmalıdır. Metin Türkçe ise onu çevir.
+ANA KURALLAR:
+1.  Sadece ve sadece JSON döndür. Başka hiçbir metin (açıklama, giriş, "```json" vb.) ekleme.
+2.  `target` alanı KISA olmalı (1-3 kelime). Asla tam bir cümle veya uzun bir liste olmamalı.
+3.  `details` alanı bir obje olmalı ve `tr` (Türkçe) ve `en` (İngilizce) olmak üzere İKİ anahtar da ZORUNLU olarak içermelidir.
+4.  `details.tr` alanı ZORUNLU olarak TÜRKÇE olmalıdır. Kaynak metin İngilizce ise onu çevir.
+5.  `details.en` alanı ZORUNLU olarak İNGİLİZCE olmalıdır. Kaynak metin Türkçe ise onu çevir.
+6.  `ability` alanı 1-3 kelime olmalı, yoksa "Genel" (TR) / "General" (EN) gibi bir varsayılan KULLANMA. Sadece "Genel" yaz.
 """
 
 def analyze_with_gemini(raw_text: str, game_name: str, send_alert: callable):
     
-    # YENİ GÜNCELLENMİŞ PROMPT:
-    # Daha net talimatlar ve "target" alanı için bir örnek (few-shot) eklendi.
+    # GÜNCELLENMİŞ PROMPT (v3)
     prompt = f"""
     Aşağıdaki oyun yama notu metnini analiz et.
     
-    KURALLAR:
-    - `target`: SADECE 1-3 kelimelik ana hedef (örn: "Jett", "Anvil Haritası", "Hortlak Pelerini").
+    KURALLAR (TEKRAR):
+    - `target`: SADECE 1-3 kelimelik ana hedef (örn: "Jett", "Anvil Haritası", "Hortlak Pelerini"). UZUN LİSTE YASAK.
     - `ability`: SADECE 1-3 kelimelik yetenek adı (yoksa "Genel" yaz).
-    - `details`: `tr` ve `en` anahtarlarını İÇERMEK ZORUNDA.
-    - `details.tr`: Detayların TÜRKÇE özeti.
-    - `details.en`: Detayların İNGİLİZCE özeti.
+    - `details.tr`: Detayların TÜRKÇE özeti. ÇEVİRİ ZORUNLUDUR.
+    - `details.en`: Detayların İNGİLİZCE özeti. ÇEVİRİ ZORUNLUDUR.
 
     JSON FORMATI:
     {{
@@ -45,8 +43,8 @@ def analyze_with_gemini(raw_text: str, game_name: str, send_alert: callable):
           "target": "1-3 kelimelik ana hedef",
           "ability": "1-3 kelimelik yetenek (veya 'Genel')",
           "details": {{
-            "tr": "detayın TÜRKÇE özeti",
-            "en": "detayın İNGİLİZCE özeti"
+            "tr": "detayın TÜRKÇE özeti (ÇEVİRİ ZORUNLU)",
+            "en": "detayın İNGİLİZCE özeti (ÇEVİRİ ZORUNLU)"
           }}
         }}
       ]
@@ -63,7 +61,7 @@ def analyze_with_gemini(raw_text: str, game_name: str, send_alert: callable):
       "changes": [
         {{
           "type": "new",
-          "target": "Yeni Eşyalar ve Atlar",
+          "target": "Atlar ve Yeni Eşyalar",
           "ability": "Genel",
           "details": {{
             "tr": "Oyuna Halılar, Kayışlar, İsim Etiketleri, Saman Balyaları ve Atlar eklendi.",
@@ -74,7 +72,7 @@ def analyze_with_gemini(raw_text: str, game_name: str, send_alert: callable):
     }}
 
     ---
-    ŞİMDİ BU METNİ ANALİZ ET:
+    ŞİMDİ BU METNİ ANALİZ ET (SADECE JSON DÖNDÜR):
 
     Metin:
     {raw_text}
@@ -84,26 +82,21 @@ def analyze_with_gemini(raw_text: str, game_name: str, send_alert: callable):
         response = client.models.generate_content(
             model="gemini-2.5-flash", 
             contents=prompt,
-            # YENİ EKLENDİ: Sistem talimatını API çağrısına ekliyoruz
             system_instruction=SYSTEM_INSTRUCTION,
             config=genai.types.GenerateContentConfig(
+                # Sadece JSON döndürmesini zorunlu kıl
                 response_mime_type="application/json" 
             ),
         )
         
+        # Artık '```json' temizliğine gerek yok, çünkü response_mime_type bunu hallediyor.
         content = response.text.strip()
-        
-        # Temizleme (Bu kısım aynı kalıyor)
-        if content.startswith("```json"):
-            content = content[7:-3].strip()
-        elif content.startswith("```"):
-            content = content[3:-3]
             
         json_data = json.loads(content)
         return json_data
 
     except Exception as e:
-        error_msg = f"❌ Gemini API JSON analizi hatası ({game_name}): {e}\nPrompt: {prompt[:200]}..."
+        error_msg = f"❌ Gemini API JSON analizi hatası ({game_name}): {e}\nResponse: {response.text if 'response' in locals() else 'No response'}"
         logging.error(error_msg)
         send_alert(error_msg) 
         return None
