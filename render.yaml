@@ -60,7 +60,7 @@ services:
         sync: false
 
   # 4. YENİ EKLENDİ: REACT DASHBOARD (STATIC SITE)
-  - type: static
+  - type: web
     name: gpnai-dashboard # (Bu, gpnai-dashboard.onrender.com adresini oluşturacak)
     env: static
     # Render'a hangi klasörde çalışacağını söylüyoruz
