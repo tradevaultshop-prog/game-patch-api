@@ -1,8 +1,65 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 
+// --- DİL ÇEVİRİ OBJESİ ---
+// Tüm statik metinleri buraya taşıdık
+const i18n = {
+  tr: {
+    headerTitle: "🎮 Game Patch Notes Intelligence API",
+    headerSubtitle: "En son oyun yamalarını analiz eden ve JSON formatında sunan API hizmeti.",
+    supportedGames: "Desteklenen Oyunlar",
+    dataView: "Veri Görünümü",
+    latestPatch: "Son Güncel Yama",
+    patchArchive: "Geçmiş Yamalar (Arşiv)",
+    summaryLang: "Özet Dili",
+    latestDataFor: "için Son Veri",
+    archiveDataFor: "için Geçmiş Veri",
+    archiveListLoading: "🔄 Arşiv listesi yükleniyor...",
+    archiveSelectPrompt: "Lütfen bir arşiv tarihi seçin...",
+    archiveNotFound: "Bu oyun için henüz bir arşiv kaydı bulunamadı.",
+    patchLoading: "🔄 Yama verisi yükleniyor...",
+    errorLoadingLatest: "Güncel veri çekilemedi:",
+    errorLoadingList: "Arşiv listesi çekilemedi:",
+    errorLoadingArchive: "Arşivlenmiş veri çekilemedi:",
+    impactScore: "Yama Etki Skoru:",
+    rawJson: "Raw JSON Output:",
+    buffs: "🟢 Güçlendirmeler (Buffs)",
+    nerfs: "🔴 Zayıflatmalar (Nerfs)",
+    newContent: "✨ Yeni İçerik/Değişiklikler",
+    fixes: "🔧 Hata Düzeltmeleri (Fixes)",
+    other: "📋 Diğer Değişiklikler",
+    noChanges: "ℹ️ Analiz tamamlandı ancak raporlanacak (nerf, buff, new, fix) önemli bir değişiklik bulunamadı."
+  },
+  en: {
+    headerTitle: "🎮 Game Patch Notes Intelligence API",
+    headerSubtitle: "The API service that analyzes the latest game patches and serves them as JSON.",
+    supportedGames: "Supported Games",
+    dataView: "Data View",
+    latestPatch: "Latest Patch",
+    patchArchive: "Patch Archive (History)",
+    summaryLang: "Summary Language",
+    latestDataFor: "Latest Data for",
+    archiveDataFor: "Archive Data for",
+    archiveListLoading: "🔄 Loading archive list...",
+    archiveSelectPrompt: "Please select an archive date...",
+    archiveNotFound: "No archive records found for this game yet.",
+    patchLoading: "🔄 Loading patch data...",
+    errorLoadingLatest: "Failed to fetch latest data:",
+    errorLoadingList: "Failed to fetch archive list:",
+    errorLoadingArchive: "Failed to fetch archived data:",
+    impactScore: "Patch Impact Score:",
+    rawJson: "Raw JSON Output:",
+    buffs: "🟢 Buffs",
+    nerfs: "🔴 Nerfs",
+    newContent: "✨ New Content/Changes",
+    fixes: "🔧 Bug Fixes",
+    other: "📋 Other Changes",
+    noChanges: "ℹ️ Analysis complete, but no significant changes (nerf, buff, new, fix) were found to report."
+  }
+};
+
+
 // --- STİLLER DOĞRUDAN BURADA ---
-// (Bir önceki adımdaki hatayı önlemek için stil dosyasını içe gömdük)
 const GlobalStyles = () => (
   <style>{`
     :root {
@@ -139,23 +196,32 @@ const GlobalStyles = () => (
 
 // --- BİLEŞENLER ---
 
-const ImpactDisplay = ({ score, label }) => {
+const ImpactDisplay = ({ score, label, lang }) => {
   if (score === undefined || score === null) return null;
+  const t = i18n[lang]; // Çeviri objesini al
   const impactClass = `impact-${label.toLowerCase()}`;
   const emoji = label === "Büyük" ? "🔥" : (label === "Orta" ? "⚠️" : "ℹ️");
+  
+  // "Küçük", "Orta", "Büyük" etiketlerini de çevir
+  const translatedLabel = label === "Büyük" ? (lang === 'tr' ? 'Büyük' : 'High') :
+                          label === "Orta" ? (lang === 'tr' ? 'Orta' : 'Medium') :
+                          (lang === 'tr' ? 'Küçük' : 'Low');
+
   return (
     <div className={`impact-display ${impactClass}`}>
-      <strong>{emoji} Yama Etki Skoru:</strong>
-      <span>{label} ({score} / 10)</span>
+      <strong>{emoji} {t.impactScore}</strong>
+      <span>{translatedLabel} ({score} / 10)</span>
     </div>
   );
 }
 
 const PatchNotesDisplay = ({ changes, lang }) => {
+  const t = i18n[lang]; // Çeviri objesini al
+
   if (!changes || changes.length === 0) {
     return (
       <div className="patch-changes-list">
-        <p>ℹ️ <i>Analiz tamamlandı ancak raporlanacak (nerf, buff, new, fix) önemli bir değişiklik bulunamadı.</i></p>
+        <p><i>{t.noChanges}</i></p>
       </div>
     );
   }
@@ -169,17 +235,19 @@ const PatchNotesDisplay = ({ changes, lang }) => {
 
   const getDetailText = (details) => {
     if (typeof details === 'object' && details !== null) {
-      return details[lang] || details.tr || details.en || "Detay yok";
+      // Seçili dili (varsayılan 'en') dene, yoksa 'en' veya 'tr' dene
+      return details[lang] || details.en || details.tr || "No details available";
     }
-    return details || "Detay yok";
+    return details || (lang === 'tr' ? "Detay yok" : "No details available");
   }
 
+  // Grup başlıklarını çeviriden al
   const groupTitles = {
-    buff: "🟢 Güçlendirmeler (Buffs)",
-    nerf: "🔴 Zayıflatmalar (Nerfs)",
-    new: "✨ Yeni İçerik/Değişiklikler",
-    fix: "🔧 Hata Düzeltmeleri (Fixes)",
-    other: "📋 Diğer Değişiklikler"
+    buff: t.buffs,
+    nerf: t.nerfs,
+    new: t.newContent,
+    fix: t.fixes,
+    other: t.other
   };
 
   return (
@@ -225,18 +293,26 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [error, setError] = useState(null);
-  const [lang, setLang] = useState('tr');
+  
+  // --- GÜNCELLEME: Varsayılan dil 'en' (İngilizce) olarak ayarlandı ---
+  const [lang, setLang] = useState('en'); 
+  
+  // Çeviri objesini (t) mevcut dile göre ayarla
+  const t = i18n[lang];
 
   const formatTimestamp = (isoString) => {
     try {
       const date = new Date(isoString);
-      return date.toLocaleString('tr-TR', {
+      // GÜNCELLEME: Tarih formatı da seçilen dile göre değişiyor
+      const locale = lang === 'tr' ? 'tr-TR' : 'en-US';
+      return date.toLocaleString(locale, {
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit', second: '2-digit'
       });
     } catch (e) { return isoString; }
   }
 
+  // --- useEffect (Veri Çekme Mantığı) ---
   useEffect(() => {
     setPatchData(null);
     setError(null);
@@ -249,7 +325,8 @@ function App() {
           const response = await axios.get(`${API_URL}/public/patches`, { params: { game: selectedGame } });
           setPatchData(response.data);
         } catch (err) {
-          setError(`Güncel veri çekilemedi: ${err.response?.data?.detail || err.message}`);
+          // GÜNCELLEME: Hata mesajı çeviriden geliyor
+          setError(`${t.errorLoadingLatest} ${err.response?.data?.detail || err.message}`);
         }
         setLoading(false);
       };
@@ -261,13 +338,14 @@ function App() {
           const response = await axios.get(`${API_URL}/public/patches/history`, { params: { game: selectedGame } });
           setArchiveList(response.data.archives || []);
         } catch (err) {
-          setError(`Arşiv listesi çekilemedi: ${err.response?.data?.detail || err.message}`);
+          // GÜNCELLEME: Hata mesajı çeviriden geliyor
+          setError(`${t.errorLoadingList} ${err.response?.data?.detail || err.message}`);
         }
         setLoadingHistory(false);
       };
       fetchHistoryList();
     }
-  }, [selectedGame, mode]);
+  }, [selectedGame, mode, t]); // 't' (ve dolayısıyla 'lang') değiştiğinde de tetiklenmesi için eklendi
 
   useEffect(() => {
     if (selectedArchiveKey && mode === 'history') {
@@ -279,26 +357,28 @@ function App() {
           const response = await axios.get(`${API_URL}/public/patches/archive`, { params: { key: selectedArchiveKey } });
           setPatchData(response.data);
         } catch (err) {
-          setError(`Arşivlenmiş veri çekilemedi: ${err.response?.data?.detail || err.message}`);
+          // GÜNCELLEME: Hata mesajı çeviriden geliyor
+          setError(`${t.errorLoadingArchive} ${err.response?.data?.detail || err.message}`);
         }
         setLoading(false);
       };
       fetchArchivedPatch();
     }
-  }, [selectedArchiveKey, mode]); // 'mode'u bağımlılığa eklemek iyi bir pratiktir
+  }, [selectedArchiveKey, mode, t]); // 't' (ve dolayısıyla 'lang') değiştiğinde de tetiklenmesi için eklendi
 
   return (
     <>
       <GlobalStyles />
       <div className="container">
         <header>
-          <h1>🎮 Game Patch Notes Intelligence API</h1>
-          <p>En son oyun yamalarını analiz eden ve JSON formatında sunan API hizmeti.</p>
+          {/* GÜNCELLEME: Tüm metinler çeviri objesinden (t) geliyor */}
+          <h1>{t.headerTitle}</h1>
+          <p>{t.headerSubtitle}</p>
         </header>
 
         <main>
           <section className="games-list">
-            <h2>Desteklenen Oyunlar</h2>
+            <h2>{t.supportedGames}</h2>
             <div className="buttons">
               {SUPPORTED_GAMES.map((game) => (
                 <button
@@ -314,25 +394,25 @@ function App() {
 
           <section className="controls">
             <div className="mode-selector">
-              <h2>Veri Görünümü</h2>
+              <h2>{t.dataView}</h2>
               <div className="buttons">
                 <button
                   className={mode === 'latest' ? 'active' : ''}
                   onClick={() => setMode('latest')}
                 >
-                  Son Güncel Yama
+                  {t.latestPatch}
                 </button>
                 <button
                   className={mode === 'history' ? 'active' : ''}
                   onClick={() => setMode('history')}
                 >
-                  Geçmiş Yamalar (Arşiv)
+                  {t.patchArchive}
                 </button>
               </div>
             </div>
             
             <div className="language-selector" style={{marginTop: '1.5rem'}}>
-              <h2>Özet Dili</h2>
+              <h2>{t.summaryLang}</h2>
               <div className="buttons">
                 <button
                   className={lang === 'tr' ? 'active' : ''}
@@ -352,23 +432,19 @@ function App() {
 
           <section className="patch-details">
             <h2>
-              {selectedGame} için 
-              {mode === 'latest' ? ' Son Veri' : ' Geçmiş Veri'}
+              {mode === 'latest' ? t.latestDataFor : t.archiveDataFor} {selectedGame}
             </h2>
             
             {mode === 'history' && (
               <div className="history-controls">
-                {loadingHistory && <div className="loading">🔄 Arşiv listesi yükleniyor...</div>}
+                {loadingHistory && <div className="loading">{t.archiveListLoading}</div>}
                 {!loadingHistory && archiveList.length > 0 && (
                   <select 
                     className="history-select"
                     value={selectedArchiveKey}
-                    // --- DÜZELTME BURADA ---
-                    // 'e.taget.value' -> 'e.target.value' olarak düzeltildi
                     onChange={(e) => setSelectedArchiveKey(e.target.value)}
-                    // ---------------------
                   >
-                    <option value="">Lütfen bir arşiv tarihi seçin...</option>
+                    <option value="">{t.archiveSelectPrompt}</option>
                     {archiveList.map((archive) => (
                       <option key={archive.key} value={archive.key}>
                         {formatTimestamp(archive.date)} ({archive.size_kb} KB)
@@ -377,12 +453,12 @@ function App() {
                   </select>
                 )}
                 {!loadingHistory && archiveList.length === 0 && !error && (
-                  <div className="loading">Bu oyun için henüz bir arşiv kaydı bulunamadı.</div>
+                  <div className="loading">{t.archiveNotFound}</div>
                 )}
               </div>
             )}
 
-            {loading && <div className="loading">🔄 Yama verisi yükleniyor...</div>}
+            {loading && <div className="loading">{t.patchLoading}</div>}
             {error && <div className="error">❌ {error}</div>}
 
             {!loading && patchData && (
@@ -390,6 +466,7 @@ function App() {
                 <ImpactDisplay 
                   score={patchData.impact_score} 
                   label={patchData.impact_label} 
+                  lang={lang} 
                 />
                 
                 <PatchNotesDisplay 
@@ -397,7 +474,7 @@ function App() {
                   lang={lang} 
                 />
 
-                <h3 style={{marginTop: '2rem'}}>Raw JSON Output:</h3>
+                <h3 style={{marginTop: '2rem'}}>{t.rawJson}</h3>
                 <div className="json-output">
                   <pre>
                     <code>
