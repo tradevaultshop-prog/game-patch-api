@@ -1,7 +1,4 @@
-# BU BİR TEST DEĞİŞİKLİĞİDİR
-# render.yaml
 services:
-  # 1. WEB SERVİSİ (SADECE API SUNAR)
   - type: web
     name: game-patch-api
     env: python
@@ -23,7 +20,6 @@ services:
       - key: SLACK_WEBHOOK_URL
         sync: false
 
-  # 2. ZAMANLANMIŞ GÖREV (ANA VERİ ÇEKME)
   - type: cron
     name: patch-scraper
     env: python
@@ -44,7 +40,6 @@ services:
       - key: SLACK_WEBHOOK_URL
         sync: false
 
-  # 3. ZAMANLANMIŞ GÖREV (SAĞLIK KONTROLÜ)
   - type: cron
     name: patch-health-check
     env: python
@@ -55,12 +50,11 @@ services:
       - key: SLACK_WEBHOOK_URL
         sync: false
 
-  # 4. REACT DASHBOARD (STATIC SITE)
   - type: web
     name: gpnai-dashboard
     env: static
     rootDir: frontend
-    buildCommand: npm install && npm run build
+    buildCommand: npm ci && npm run build
     publishDir: dist
     routes:
       - type: rewrite
