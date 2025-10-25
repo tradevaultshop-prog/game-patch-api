@@ -39,6 +39,11 @@ services:
         sync: false
       - key: SLACK_WEBHOOK_URL
         sync: false
+      # --- YENİ EKLENDİ ---
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
 
   - type: cron
     name: patch-health-check
@@ -49,3 +54,12 @@ services:
     envVars:
       - key: SLACK_WEBHOOK_URL
         sync: false
+      # --- YENİ EKLENDİ ---
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+
+# Not: Faz 4 (Frontend) render.yaml dosyanızda varsa, bu değişiklikleri 
+# o dosyadaki ilgili servislere ekleyin. 
+# Bu kod, sizin yüklediğiniz render.yaml'a göredir.
