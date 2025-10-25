@@ -8,3 +8,4 @@ lxml
 boto3
 PyYAML
 fastapi-cors
+pydantic
