@@ -1,19 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-// import './App.css' // <- Hata veren satır kaldırıldı. Stiller aşağıya gömüldü.
 
-const API_URL = "https://game-patch-api.onrender.com";
-
-const SUPPORTED_GAMES = [
-  "Valorant",
-  "Roblox",
-  "Minecraft",
-  "League of Legends",
-  "Counter-Strike 2",
-  "Fortnite"
-];
-
-// YENİ: Tüm CSS stillerimizi içeren bileşen
+// --- STİLLER DOĞRUDAN BURADA ---
 const GlobalStyles = () => (
   <style>{`
     :root {
@@ -34,17 +22,11 @@ const GlobalStyles = () => (
       margin-bottom: 2rem;
     }
     h1 { color: #535bf2; }
-    .games-list h2, 
-    .patch-details h2,
-    .mode-selector h2 {
+    h2 {
       border-bottom: 1px solid #444; 
       padding-bottom: 8px; 
     }
-    .games-list, 
-    .patch-details,
-    .mode-selector {
-      margin-top: 2rem;
-    }
+    section { margin-top: 2rem; }
     .buttons { 
       display: flex; 
       flex-wrap: wrap; 
@@ -97,7 +79,6 @@ const GlobalStyles = () => (
       border-color: #535bf2;
       outline: none;
     }
-    /* --- Etki Skoru Stilleri --- */
     .impact-display {
       padding: 1rem;
       border-radius: 8px;
@@ -112,31 +93,57 @@ const GlobalStyles = () => (
       font-weight: bold;
     }
     .impact-küçük {
-      background-color: #2a3a3a;
-      border-color: #3fa8a8;
-      color: #88f1f1;
+      background-color: #2a3a3a; border-color: #3fa8a8; color: #88f1f1;
     }
     .impact-orta {
-      background-color: #4a4a2a;
-      border-color: #a8a83f;
-      color: #f1f188;
+      background-color: #4a4a2a; border-color: #a8a83f; color: #f1f188;
     }
     .impact-büyük {
-      background-color: #4b2525;
-      border-color: #a83f3f;
-      color: #ffbaba;
+      background-color: #4b2525; border-color: #a83f3f; color: #ffbaba;
     }
+
+    /* --- YENİ: Formatlı Değişiklik Listesi Stilleri --- */
+    .patch-changes-list {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background-color: #1a1a1a;
+      border-radius: 8px;
+    }
+    .patch-changes-list h3 {
+      margin-top: 0.5rem;
+      margin-bottom: 0.5rem;
+      font-size: 1.2em;
+    }
+    .patch-changes-list ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .patch-changes-list li {
+      margin-bottom: 0.75rem;
+    }
+    .patch-changes-list strong {
+      color: #a8a8ff; /* Hedef/Yetenek rengi */
+    }
+    .patch-changes-list .details {
+      display: block;
+      color: #ccc;
+      margin-top: 2px;
+      font-style: italic;
+    }
+    .change-group-buff h3 { color: #88f188; }
+    .change-group-nerf h3 { color: #ffbaba; }
+    .change-group-new h3 { color: #88d8f1; }
+    .change-group-fix h3 { color: #f1f188; }
+    .change-group-other h3 { color: #ccc; }
   `}</style>
 );
 
-// Skoru ve Etiketi gösterecek basit bir bileşen
+// --- BİLEŞENLER ---
+
 const ImpactDisplay = ({ score, label }) => {
-  if (score === undefined || score === null) {
-    return null;
-  }
+  if (score === undefined || score === null) return null;
   const impactClass = `impact-${label.toLowerCase()}`;
   const emoji = label === "Büyük" ? "🔥" : (label === "Orta" ? "⚠️" : "ℹ️");
-
   return (
     <div className={`impact-display ${impactClass}`}>
       <strong>{emoji} Yama Etki Skoru:</strong>
@@ -145,6 +152,78 @@ const ImpactDisplay = ({ score, label }) => {
   );
 }
 
+/**
+ * YENİ: JSON'daki "changes" dizisini alan ve seçilen dile göre [cite: 1.1] 
+ * güzel bir liste olarak gösteren bileşen.
+ */
+const PatchNotesDisplay = ({ changes, lang }) => {
+  if (!changes || changes.length === 0) {
+    return (
+      <div className="patch-changes-list">
+        <p>ℹ️ <i>Analiz tamamlandı ancak raporlanacak (nerf, buff, new, fix) önemli bir değişiklik bulunamadı.</i></p>
+      </div>
+    );
+  }
+
+  // Değişiklikleri tipe göre grupla (Telegram'daki gibi)
+  const groups = { buff: [], nerf: [], new: [], fix: [], other: [] };
+  changes.forEach(change => {
+    const type = change.type?.toLowerCase() || 'other';
+    if (type in groups) groups[type].push(change);
+    else groups.other.push(change);
+  });
+
+  // Bir dil objesinden (veya eski string'den) metni güvenle çeker
+  const getDetailText = (details) => {
+    if (typeof details === 'object' && details !== null) {
+      return details[lang] || details.tr || details.en || "Detay yok"; // İstenen dili, sonra TR, sonra EN dene
+    }
+    return details || "Detay yok"; // Eski veriler için (string ise)
+  }
+
+  // Grup başlıkları
+  const groupTitles = {
+    buff: "🟢 Güçlendirmeler (Buffs)",
+    nerf: "🔴 Zayıflatmalar (Nerfs)",
+    new: "✨ Yeni İçerik/Değişiklikler",
+    fix: "🔧 Hata Düzeltmeleri (Fixes)",
+    other: "📋 Diğer Değişiklikler"
+  };
+
+  return (
+    <div className="patch-changes-list">
+      {Object.entries(groups).map(([type, changesList]) => {
+        if (changesList.length === 0) return null; // Boş grubu gösterme
+        return (
+          <div key={type} className={`change-group change-group-${type}`}>
+            <h3>{groupTitles[type]}</h3>
+            <ul>
+              {changesList.map((change, index) => (
+                <li key={index}>
+                  <strong>
+                    {change.target}
+                    {change.ability && ` (${change.ability})`}
+                  </strong>
+                  <span className="details">
+                    {getDetailText(change.details)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
+// --- ANA UYGULAMA BİLEŞENİ ---
+
+const API_URL = "https://game-patch-api.onrender.com";
+const SUPPORTED_GAMES = [
+  "Valorant", "Roblox", "Minecraft", "League of Legends", "Counter-Strike 2", "Fortnite"
+];
 
 function App() {
   const [mode, setMode] = useState('latest'); 
@@ -155,6 +234,9 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [error, setError] = useState(null);
+  
+  // YENİ: Dil state'i [cite: 1.1]
+  const [lang, setLang] = useState('tr'); // Varsayılan dil Türkçe
 
   const formatTimestamp = (isoString) => {
     try {
@@ -166,20 +248,17 @@ function App() {
     } catch (e) { return isoString; }
   }
 
-  // HOOK 1 & 2: Oyun veya Mod değiştiğinde
+  // HOOK 1 & 2: Oyun veya Mod değiştiğinde (Değişiklik yok)
   useEffect(() => {
     setPatchData(null);
     setError(null);
     setArchiveList([]);
     setSelectedArchiveKey("");
-
     if (mode === 'latest') {
       const fetchLatestPatch = async () => {
         setLoading(true);
         try {
-          const response = await axios.get(`${API_URL}/public/patches`, {
-            params: { game: selectedGame }
-          });
+          const response = await axios.get(`${API_URL}/public/patches`, { params: { game: selectedGame } });
           setPatchData(response.data);
         } catch (err) {
           setError(`Güncel veri çekilemedi: ${err.response?.data?.detail || err.message}`);
@@ -191,9 +270,7 @@ function App() {
       const fetchHistoryList = async () => {
         setLoadingHistory(true);
         try {
-          const response = await axios.get(`${API_URL}/public/patches/history`, {
-            params: { game: selectedGame }
-          });
+          const response = await axios.get(`${API_URL}/public/patches/history`, { params: { game: selectedGame } });
           setArchiveList(response.data.archives || []);
         } catch (err) {
           setError(`Arşiv listesi çekilemedi: ${err.response?.data?.detail || err.message}`);
@@ -204,7 +281,7 @@ function App() {
     }
   }, [selectedGame, mode]);
 
-  // HOOK 3: Arşiv tarihi seçildiğinde
+  // HOOK 3: Arşiv tarihi seçildiğinde (Değişiklik yok)
   useEffect(() => {
     if (selectedArchiveKey && mode === 'history') {
       const fetchArchivedPatch = async () => {
@@ -212,9 +289,7 @@ function App() {
         setError(null);
         setPatchData(null);
         try {
-          const response = await axios.get(`${API_URL}/public/patches/archive`, {
-            params: { key: selectedArchiveKey }
-          });
+          const response = await axios.get(`${API_URL}/public/patches/archive`, { params: { key: selectedArchiveKey } });
           setPatchData(response.data);
         } catch (err) {
           setError(`Arşivlenmiş veri çekilemedi: ${err.response?.data?.detail || err.message}`);
@@ -228,9 +303,7 @@ function App() {
   // --- JSX (Görsel Arayüz) ---
   return (
     <>
-      {/* YENİ: Gömülü stilleri buraya ekliyoruz */}
       <GlobalStyles />
-      
       <div className="container">
         <header>
           <h1>🎮 Game Patch Notes Intelligence API</h1>
@@ -254,22 +327,43 @@ function App() {
             </div>
           </section>
 
-          {/* BÖLÜM 2: Sekmeler */}
-          <section className="mode-selector">
-            <h2>Veri Görünümü</h2>
-            <div className="buttons">
-              <button
-                className={mode === 'latest' ? 'active' : ''}
-                onClick={() => setMode('latest')}
-              >
-                Son Güncel Yama
-              </button>
-              <button
-                className={mode === 'history' ? 'active' : ''}
-                onClick={() => setMode('history')}
-              >
-                Geçmiş Yamalar (Arşiv)
-              </button>
+          {/* BÖLÜM 2: Dil ve Mod Seçiciler */}
+          <section className="controls">
+            <div className="mode-selector">
+              <h2>Veri Görünümü</h2>
+              <div className="buttons">
+                <button
+                  className={mode === 'latest' ? 'active' : ''}
+                  onClick={() => setMode('latest')}
+                >
+                  Son Güncel Yama
+                </button>
+                <button
+                  className={mode === 'history' ? 'active' : ''}
+                  onClick={() => setMode('history')}
+                >
+                  Geçmiş Yamalar (Arşiv)
+                </button>
+              </div>
+            </div>
+            
+            {/* YENİ: Dil Seçici [cite: 1.1] */}
+            <div className="language-selector" style={{marginTop: '1.5rem'}}>
+              <h2>Özet Dili</h2>
+              <div className="buttons">
+                <button
+                  className={lang === 'tr' ? 'active' : ''}
+                  onClick={() => setLang('tr')}
+                >
+                  🇹🇷 Türkçe
+                </button>
+                <button
+                  className={lang === 'en' ? 'active' : ''}
+                  onClick={() => setLang('en')}
+                >
+                  🇬🇧 English
+                </button>
+              </div>
             </div>
           </section>
 
@@ -288,7 +382,7 @@ function App() {
                   <select 
                     className="history-select"
                     value={selectedArchiveKey}
-                    onChange={(e) => setSelectedArchiveKey(e.target.value)}
+                    onChange={(e) => setSelectedArchiveKey(e.taget.value)}
                   >
                     <option value="">Lütfen bir arşiv tarihi seçin...</option>
                     {archiveList.map((archive) => (
@@ -308,25 +402,32 @@ function App() {
             {loading && <div className="loading">🔄 Yama verisi yükleniyor...</div>}
             {error && <div className="error">❌ {error}</div>}
 
-            {/* Etki Skoru Göstergesi */}
+            {/* Veri yüklendiğinde ve hata olmadığında */}
             {!loading && patchData && (
-              <ImpactDisplay 
-                score={patchData.impact_score} 
-                label={patchData.impact_label} 
-              />
-            )}
+              <>
+                {/* 1. Etki Skoru Göstergesi */}
+                <ImpactDisplay 
+                  score={patchData.impact_score} 
+                  label={patchData.impact_label} 
+                />
+                
+                {/* 2. YENİ: Formatlı Değişiklik Listesi */}
+                <PatchNotesDisplay 
+                  changes={patchData.changes} 
+                  lang={lang} 
+                />
 
-            {/* JSON Verisi */}
-            {patchData && (
-              <div className="json-output">
-                <pre>
-                  <code>
-                    {JSON.stringify(patchData, null, 2)}
-                  </code>
-                </pre>
-              </div>
+                {/* 3. Ham JSON Çıktısı (Teknik kullanıcılar için) */}
+                <h3 style={{marginTop: '2rem'}}>Raw JSON Output:</h3>
+                <div className="json-output">
+                  <pre>
+                    <code>
+                      {JSON.stringify(patchData, null, 2)}
+                    </code>
+                  </pre>
+                </div>
+              </>
             )}
-
           </section>
         </main>
       </div>
